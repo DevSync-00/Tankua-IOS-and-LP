@@ -1,0 +1,57 @@
+-- ============================================
+-- STORAGE BUCKET SETUP INSTRUCTIONS
+-- ============================================
+-- Note: Supabase Storage buckets cannot be created via SQL.
+-- They must be created through the Supabase Dashboard or Storage API.
+--
+-- MANUAL SETUP INSTRUCTIONS:
+-- ============================================
+-- 1. Go to your Supabase Dashboard
+-- 2. Navigate to Storage in the sidebar
+-- 3. Click "Create a new bucket"
+-- 4. Create the following buckets:
+--
+--    Bucket Name: provider-docs
+--    Public: No (Private)
+--    File size limit: 5 MB
+--    Allowed MIME types: application/pdf, image/png, image/jpeg
+--
+-- 5. After creating the bucket, set up storage policies:
+--    - Click on the "provider-docs" bucket
+--    - Go to "Policies" tab
+--    - Create a policy for INSERT (upload):
+--      Policy name: "Allow authenticated uploads"
+--      Policy definition:
+--        (bucket_id = 'provider-docs'::text) AND (auth.role() = 'authenticated'::text)
+--    - Create a policy for SELECT (read):
+--      Policy name: "Allow admin reads"
+--      Policy definition:
+--        (bucket_id = 'provider-docs'::text) AND (
+--          EXISTS (
+--            SELECT 1 FROM admin_users
+--            WHERE admin_users.id = auth.uid()
+--          )
+--        )
+--
+-- ============================================
+-- ALTERNATIVE: Create via Supabase Management API
+-- ============================================
+-- You can also create buckets programmatically using the Management API
+-- with a service role key (DO NOT expose this in client code):
+--
+-- Example using curl:
+-- curl -X POST 'https://YOUR_PROJECT.supabase.co/storage/v1/bucket' \
+--   -H 'Authorization: Bearer YOUR_SERVICE_ROLE_KEY' \
+--   -H 'Content-Type: application/json' \
+--   -d '{
+--     "name": "provider-docs",
+--     "public": false,
+--     "file_size_limit": 5242880,
+--     "allowed_mime_types": ["application/pdf", "image/png", "image/jpeg"]
+--   }'
+--
+-- ============================================
+-- COMPLETED
+-- ============================================
+-- After creating the bucket, provider registration uploads will work.
+
