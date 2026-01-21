@@ -226,7 +226,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
                 <View style={styles.methodInfo}>
                   <View style={styles.methodHeader}>
                     <Text style={styles.methodName}>{method.name}</Text>
-                    {method.isDefault && (
+                    {method.is_default && (
                       <View style={styles.defaultBadge}>
                         <Text style={styles.defaultText}>Default</Text>
                       </View>
@@ -236,7 +236,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
                 </View>
               </View>
               <View style={styles.methodActions}>
-                {!method.isDefault && (
+                {!method.is_default && (
                   <TouchableOpacity
                     style={styles.actionButton}
                     onPress={() => handleSetDefault(method.id)}

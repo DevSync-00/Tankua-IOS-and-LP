@@ -58,13 +58,17 @@ const NotificationsScreen = ({ navigation }) => {
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
       
+      // Calculate unread count before updating state
+      let unreadCount = 0;
       setNotifications(prev => {
         const updated = prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n);
         // Calculate unread count from the updated state
-        const unreadCount = updated.filter(n => !n.is_read).length;
-        setBadgeCount(unreadCount);
+        unreadCount = updated.filter(n => !n.is_read).length;
         return updated;
       });
+      
+      // Update badge count outside state updater to properly handle async operation
+      await setBadgeCount(unreadCount);
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }

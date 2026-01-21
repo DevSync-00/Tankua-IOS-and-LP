@@ -532,20 +532,24 @@ const MapScreen = ({ navigation }) => {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
           >
-            <Text style={styles.listHeader}>
-              {filteredDestinations.length} {filteredDestinations.length === 1 ? 'Destination' : 'Destinations'}
-            </Text>
+            {(() => {
+              const displayDestinations = filteredDestinations.filter(d => d.category !== 'church' && d.category !== 'religious');
+              return (
+                <>
+                  <Text style={styles.listHeader}>
+                    {displayDestinations.length} {displayDestinations.length === 1 ? 'Destination' : 'Destinations'}
+                  </Text>
 
-            {filteredDestinations.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="map-outline" size={64} color={COLORS.grayLight} />
-                <Text style={styles.emptyStateText}>No destinations found</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  Try adjusting your filters or search query
-                </Text>
-              </View>
-            ) : (
-              filteredDestinations.map((destination) => (
+                  {displayDestinations.length === 0 ? (
+                    <View style={styles.emptyState}>
+                      <Ionicons name="map-outline" size={64} color={COLORS.grayLight} />
+                      <Text style={styles.emptyStateText}>No destinations found</Text>
+                      <Text style={styles.emptyStateSubtext}>
+                        Try adjusting your filters or search query
+                      </Text>
+                    </View>
+                  ) : (
+                    displayDestinations.map((destination) => (
                 <TouchableOpacity
                   key={destination.id}
                   style={styles.listItem}
@@ -587,8 +591,12 @@ const MapScreen = ({ navigation }) => {
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
                 </TouchableOpacity>
-              ))
-            )}
+                    ))
+                  )
+                }
+                </>
+              );
+            })()}
           </Animated.ScrollView>
         </Animated.View>
       )}
