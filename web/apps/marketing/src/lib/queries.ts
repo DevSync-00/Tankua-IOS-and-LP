@@ -19,20 +19,38 @@ export async function getFeaturedTours(limit: number = 4) {
     if (error) throw error;
 
     // Transform data to match frontend format
-    return (data || []).map((trip: any) => {
+    return await Promise.all((data || []).map(async (trip: any) => {
       const dest = trip.destination || trip.church;
+      
+      // Get review count and average rating for this provider
+      const { count: reviewCount } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('provider_id', trip.provider?.id)
+        .eq('is_visible', true);
+      
+      const { data: reviewData } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('provider_id', trip.provider?.id)
+        .eq('is_visible', true);
+      
+      const avgRating = reviewData && reviewData.length > 0
+        ? reviewData.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewData.length
+        : trip.provider?.rating || 4.5;
+      
       return {
         id: trip.id,
         name: dest?.name || 'Unknown Destination',
         location: dest?.city || 'Unknown',
         category: dest?.category || 'General',
         image: dest?.images?.[0] || 'https://images.pexels.com/photos/12109950/pexels-photo-12109950.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
-        rating: trip.provider?.rating || 4.5,
-        reviews: Math.floor(Math.random() * 2000) + 500, // Mock for now
+        rating: avgRating,
+        reviews: reviewCount || 0,
         price: trip.price || 1000,
         description: dest?.description || '',
       };
-    });
+    }));
   } catch (error) {
     console.error('Error fetching featured tours:', error);
     return [];
@@ -79,23 +97,34 @@ export async function getTours(options?: {
     const { data, error, count } = await query;
     if (error) throw error;
 
+    // Get review counts for all providers
+    const toursWithReviews = await Promise.all((data || []).map(async (trip: any) => {
+      const dest = trip.destination || trip.church;
+      
+      // Get review count for this provider
+      const { count: reviewCount } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('provider_id', trip.provider?.id)
+        .eq('is_visible', true);
+      
+      return {
+        id: trip.id,
+        name: dest?.name || 'Unknown Destination',
+        location: dest?.city || 'Unknown',
+        region: dest?.region || 'Unknown',
+        category: dest?.category || 'general',
+        image: dest?.images?.[0] || 'https://images.pexels.com/photos/12109950/pexels-photo-12109950.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
+        rating: trip.provider?.rating || 4.5,
+        reviews: reviewCount || 0,
+        price: trip.price || 1000,
+        description: dest?.description || '',
+        tags: dest?.category ? [dest.category] : [],
+      };
+    }));
+    
     return {
-      tours: (data || []).map((trip: any) => {
-        const dest = trip.destination || trip.church;
-        return {
-          id: trip.id,
-          name: dest?.name || 'Unknown Destination',
-          location: dest?.city || 'Unknown',
-          region: dest?.region || 'Unknown',
-          category: dest?.category || 'general',
-          image: dest?.images?.[0] || 'https://images.pexels.com/photos/12109950/pexels-photo-12109950.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
-          rating: trip.provider?.rating || 4.5,
-          reviews: Math.floor(Math.random() * 2000) + 500,
-          price: trip.price || 1000,
-          description: dest?.description || '',
-          tags: dest?.category ? [dest.category] : [],
-        };
-      }),
+      tours: toursWithReviews,
       total: count || 0,
     };
   } catch (error) {
@@ -175,20 +204,66 @@ export async function getDestinations(options?: {
 
     if (error) throw error;
 
-    return {
-      destinations: (data || []).map((dest: any) => ({
+    // Get review counts and ratings for destinations (via trips)
+    const destinationsWithReviews = await Promise.all((data || []).map(async (dest: any) => {
+      // Get trips for this destination to find providers and reviews
+      const { data: tripsData } = await supabase
+        .from('trips')
+        .select('provider_id')
+        .eq('destination_id', dest.id)
+        .limit(1);
+      
+      let reviewCount = 0;
+      let avgRating = 4.5;
+      
+      if (tripsData && tripsData.length > 0 && tripsData[0].provider_id) {
+        const { count } = await supabase
+          .from('reviews')
+          .select('id', { count: 'exact', head: true })
+          .eq('provider_id', tripsData[0].provider_id)
+          .eq('is_visible', true);
+        
+        const { data: reviewData } = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('provider_id', tripsData[0].provider_id)
+          .eq('is_visible', true);
+        
+        reviewCount = count || 0;
+        if (reviewData && reviewData.length > 0) {
+          avgRating = reviewData.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewData.length;
+        }
+      }
+      
+      // Get average price from trips
+      const { data: priceData } = await supabase
+        .from('trips')
+        .select('price')
+        .eq('destination_id', dest.id)
+        .not('price', 'is', null)
+        .limit(10);
+      
+      const avgPrice = priceData && priceData.length > 0
+        ? priceData.reduce((sum, t) => sum + (t.price || 0), 0) / priceData.length
+        : 1500;
+      
+      return {
         id: dest.id,
         name: dest.name,
         location: dest.city,
         region: dest.region || 'Unknown',
         category: dest.category || 'general',
         image: dest.images?.[0] || 'https://images.pexels.com/photos/12109950/pexels-photo-12109950.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
-        rating: 4.5 + Math.random() * 0.5, // Mock rating
-        reviews: Math.floor(Math.random() * 2000) + 500,
-        price: 800 + Math.floor(Math.random() * 3000),
+        rating: avgRating,
+        reviews: reviewCount,
+        price: Math.round(avgPrice),
         description: dest.description || '',
         tags: dest.tags || [dest.category].filter(Boolean),
-      })),
+      };
+    }));
+    
+    return {
+      destinations: destinationsWithReviews,
       total: count || 0,
     };
   } catch (error) {

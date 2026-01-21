@@ -15,12 +15,12 @@ export const translations = {
     retry: 'Retry',
     
     // Onboarding
-    onboarding1Title: 'Discover Holy Places',
-    onboarding1Desc: 'Explore churches and sacred sites across Ethiopia',
+    onboarding1Title: 'Discover Amazing Places',
+    onboarding1Desc: 'Explore destinations and attractions across Ethiopia',
     onboarding2Title: 'Book Your Journey',
-    onboarding2Desc: 'Select pickup stations and book your spiritual trip',
+    onboarding2Desc: 'Select pickup stations and book your trip',
     onboarding3Title: 'Travel in Peace',
-    onboarding3Desc: 'Join group trips and connect with fellow believers',
+    onboarding3Desc: 'Join group trips and connect with fellow travelers',
     skip: 'Skip',
     next: 'Next',
     getStarted: 'Get Started',
@@ -37,7 +37,7 @@ export const translations = {
     
     // Home
     welcome: 'Welcome',
-    exploreChurches: 'Explore Churches',
+    exploreDestinations: 'Explore Destinations',
     popularTrips: 'Popular Trips',
     upcomingTrips: 'Upcoming Trips',
     viewAll: 'View All',
@@ -45,12 +45,12 @@ export const translations = {
     gridView: 'Grid',
     mapView: 'Map',
     
-    // Church
-    churchDetails: 'Church Details',
+    // Destination
+    destinationDetails: 'Destination Details',
     about: 'About',
     location: 'Location',
     bookTrip: 'Book Trip',
-    saveChurch: 'Save Church',
+    saveDestination: 'Save Destination',
     
     // Booking
     selectTripType: 'Select Trip Type',
@@ -93,7 +93,7 @@ export const translations = {
     profileIncomplete: 'Profile Incomplete',
     completeProfile: 'Complete Your Profile',
     profileComplete: 'Profile Complete',
-    savedChurches: 'Saved Churches',
+    savedDestinations: 'Saved Destinations',
     savedStations: 'Saved Stations',
     language: 'Language',
     settings: 'Settings',
@@ -101,12 +101,12 @@ export const translations = {
     // Admin
     admin: 'Admin',
     dashboard: 'Dashboard',
-    manageChurches: 'Manage Churches',
+    manageDestinations: 'Manage Destinations',
     manageTrips: 'Manage Trips',
     manageStations: 'Manage Stations',
     manageDrivers: 'Manage Drivers',
     manageBookings: 'Manage Bookings',
-    addChurch: 'Add Church',
+    addDestination: 'Add Destination',
     addTrip: 'Add Trip',
     addStation: 'Add Station',
     addDriver: 'Add Driver',
@@ -138,12 +138,12 @@ export const translations = {
     retry: 'እንደገና ሞክር',
     
     // Onboarding
-    onboarding1Title: 'የቅዱሳን ቦታዎችን ያግኙ',
-    onboarding1Desc: 'በኢትዮጵያ ውስጥ ያሉ ቤተክርስቲያኖችንና ቅዱሳን ቦታዎችን ያስሱ',
+    onboarding1Title: 'አስደናቂ ቦታዎችን ያግኙ',
+    onboarding1Desc: 'በኢትዮጵያ ውስጥ ያሉ መዳረሻዎችንና የመሳሰሉ ቦታዎችን ያስሱ',
     onboarding2Title: 'ጉዞዎን ይምረጡ',
-    onboarding2Desc: 'የመውሰጃ ጣቢያዎችን ይምረጡና መንፈሳዊ ጉዞዎን ይያዙ',
+    onboarding2Desc: 'የመውሰጃ ጣቢያዎችን ይምረጡና ጉዞዎን ይያዙ',
     onboarding3Title: 'በሰላም ተጓዙ',
-    onboarding3Desc: 'ከሌሎች አማኞች ጋር በቡድን ይጓዙ',
+    onboarding3Desc: 'ከሌሎች ተጓዦች ጋር በቡድን ይጓዙ',
     skip: 'ዝለል',
     next: 'ቀጣይ',
     getStarted: 'ጀምር',
@@ -160,7 +160,7 @@ export const translations = {
     
     // Home
     welcome: 'እንኳን በደህና መጡ',
-    exploreChurches: 'ቤተክርስቲያኖችን ያስሱ',
+    exploreDestinations: 'መዳረሻዎችን ያስሱ',
     popularTrips: 'ተወዳጅ ጉዞዎች',
     upcomingTrips: 'መጪ ጉዞዎች',
     viewAll: 'ሁሉንም ይመልከቱ',
@@ -168,12 +168,12 @@ export const translations = {
     gridView: 'ፍርግርግ',
     mapView: 'ካርታ',
     
-    // Church
-    churchDetails: 'የቤተክርስቲያን ዝርዝር',
+    // Destination
+    destinationDetails: 'የመዳረሻ ዝርዝር',
     about: 'ስለ',
     location: 'አድራሻ',
     bookTrip: 'ጉዞ ይያዙ',
-    saveChurch: 'ቤተክርስቲያን አስቀምጥ',
+    saveDestination: 'መዳረሻ አስቀምጥ',
     
     // Booking
     selectTripType: 'የጉዞ አይነት ይምረጡ',
@@ -216,7 +216,7 @@ export const translations = {
     profileIncomplete: 'መገለጫ አልተጠናቀቀም',
     completeProfile: 'መገለጫዎን ያጠናቅቁ',
     profileComplete: 'መገለጫ ተጠናቋል',
-    savedChurches: 'የተቀመጡ ቤተክርስቲያኖች',
+    savedDestinations: 'የተቀመጡ መዳረሻዎች',
     savedStations: 'የተቀመጡ ጣቢያዎች',
     language: 'ቋንቋ',
     settings: 'ቅንብሮች',
@@ -224,12 +224,12 @@ export const translations = {
     // Admin
     admin: 'አስተዳዳሪ',
     dashboard: 'ዳሽቦርድ',
-    manageChurches: 'ቤተክርስቲያኖችን አስተዳድር',
+    manageDestinations: 'መዳረሻዎችን አስተዳድር',
     manageTrips: 'ጉዞዎችን አስተዳድር',
     manageStations: 'ጣቢያዎችን አስተዳድር',
     manageDrivers: 'ሹፌሮችን አስተዳድር',
     manageBookings: 'ቦታዎችን አስተዳድር',
-    addChurch: 'ቤተክርስቲያን አክል',
+    addDestination: 'መዳረሻ አክል',
     addTrip: 'ጉዞ አክል',
     addStation: 'ጣቢያ አክል',
     addDriver: 'ሹፌር አክል',

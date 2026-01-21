@@ -66,7 +66,7 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
             } else if (route.name === 'Trips') {
               iconName = isFocused ? 'bus' : 'bus-outline';
             } else if (route.name === 'Help') {
-              iconName = isFocused ? 'help-circle' : 'help-circle-outline';
+              iconName = isFocused ? 'map' : 'map-outline';
             } else if (route.name === 'Profile') {
               iconName = isFocused ? 'person' : 'person-outline';
             }

@@ -25,6 +25,8 @@ import {
   getRecentBookings,
   getTopProviders,
   getTopChurches,
+  getBookingTrends,
+  getRevenueAnalytics,
   type DashboardStats,
   type RecentBooking,
   type TopProvider,
@@ -38,6 +40,13 @@ export default function DashboardPage() {
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [topProviders, setTopProviders] = useState<TopProvider[]>([]);
   const [topChurches, setTopChurches] = useState<TopChurch[]>([]);
+  const [bookingTrends, setBookingTrends] = useState<Array<{ date: string; bookings: number; revenue: number }>>([]);
+  const [revenueAnalytics, setRevenueAnalytics] = useState<{
+    totalRevenue: number;
+    monthlyRevenue: number;
+    averageBookingValue: number;
+    revenueByStatus: Array<{ status: string; revenue: number }>;
+  } | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -46,17 +55,21 @@ export default function DashboardPage() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [statsData, bookingsData, providersData, churchesData] = await Promise.all([
+      const [statsData, bookingsData, providersData, churchesData, trendsData, revenueData] = await Promise.all([
         getDashboardStats(),
         getRecentBookings(5),
         getTopProviders(4),
         getTopChurches(4),
+        getBookingTrends(30),
+        getRevenueAnalytics(),
       ]);
 
       setStats(statsData);
       setRecentBookings(bookingsData);
       setTopProviders(providersData);
       setTopChurches(churchesData);
+      setBookingTrends(trendsData);
+      setRevenueAnalytics(revenueData);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -108,7 +121,7 @@ export default function DashboardPage() {
     {
       title: "Revenue (Total)",
       value: formatCurrency(stats?.totalRevenue || 0),
-      change: 0,
+      change: 0, // Revenue change not calculated for total (all time)
       changeLabel: "all time",
       icon: <CreditCard className="h-6 w-6" />,
     },
@@ -297,6 +310,94 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Analytics Section */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Booking Trends */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Booking Trends (Last 30 Days)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {bookingTrends.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No booking data available</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total Bookings</span>
+                    <span className="font-semibold">{bookingTrends.reduce((sum, t) => sum + t.bookings, 0)}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {bookingTrends.slice(-7).map((trend, index) => {
+                      const maxBookings = Math.max(...bookingTrends.map(t => t.bookings), 1);
+                      const percentage = (trend.bookings / maxBookings) * 100;
+                      return (
+                        <div key={index} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              {new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                            <span className="font-medium">{trend.bookings} bookings</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Revenue Analytics */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {revenueAnalytics ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-muted/30 rounded-xl">
+                      <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
+                      <p className="text-2xl font-bold">{formatCurrency(revenueAnalytics.totalRevenue)}</p>
+                    </div>
+                    <div className="p-4 bg-primary/10 rounded-xl">
+                      <p className="text-sm text-muted-foreground mb-1">This Month</p>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(revenueAnalytics.monthlyRevenue)}</p>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-muted/30 rounded-xl">
+                    <p className="text-sm text-muted-foreground mb-1">Average Booking Value</p>
+                    <p className="text-2xl font-bold">{formatCurrency(revenueAnalytics.averageBookingValue)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-3">Revenue by Status</p>
+                    <div className="space-y-2">
+                      {revenueAnalytics.revenueByStatus.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                          <span className="text-sm capitalize">{item.status}</span>
+                          <span className="font-semibold text-sm">{formatCurrency(item.revenue)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No revenue data available</p>
+                </div>
               )}
             </CardContent>
           </Card>

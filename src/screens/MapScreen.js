@@ -1,7 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  ScrollView,
+  ActivityIndicator,
+  Image,
+  Dimensions,
+  RefreshControl,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { useFocusEffect } from '@react-navigation/native';
+import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Animated, {
   useSharedValue,
@@ -10,19 +22,28 @@ import Animated, {
   withTiming,
   interpolate,
   Extrapolate,
+  useAnimatedScrollHandler,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, ANIMATIONS } from '../config/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getDestinations } from '../services/database';
 import AnimatedCard from '../components/AnimatedCard';
 import ModernButton from '../components/ModernButton';
+import CategoryRibbon from '../components/CategoryRibbon';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const MapScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const { t } = useLanguage();
+  const mapRef = useRef(null);
+  const scrollViewRef = useRef(null);
+  
+  // State
   const [region, setRegion] = useState({
-    latitude: 9.0320,
+    latitude: 9.0320, // Addis Ababa default
     longitude: 38.7469,
     latitudeDelta: 5,
     longitudeDelta: 5,
@@ -31,9 +52,56 @@ const MapScreen = ({ navigation }) => {
   const [selectedDestination, setSelectedDestination] = useState(null);
   const [destinations, setDestinations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('map'); // 'map' or 'list'
+  const [showFilters, setShowFilters] = useState(false);
+  const [nearbyDestinations, setNearbyDestinations] = useState([]);
 
-  const cardTranslateY = useSharedValue(300);
+  // Animation values
+  const cardTranslateY = useSharedValue(400);
   const cardOpacity = useSharedValue(0);
+  const filterPanelHeight = useSharedValue(0);
+  const searchBarOpacity = useSharedValue(1);
+  const scrollY = useSharedValue(0);
+
+  // Categories
+  const categories = [
+    { id: null, label: 'All', icon: 'apps-outline' },
+    { id: 'church', label: 'Churches', icon: 'location-outline' },
+    { id: 'historical', label: 'Historical', icon: 'library-outline' },
+    { id: 'nature', label: 'Nature', icon: 'leaf-outline' },
+    { id: 'adventure', label: 'Adventure', icon: 'bicycle-outline' },
+    { id: 'cultural', label: 'Cultural', icon: 'people-outline' },
+    { id: 'monument', label: 'Monuments', icon: 'location-outline' },
+    { id: 'park', label: 'Parks', icon: 'tree-outline' },
+    { id: 'museum', label: 'Museums', icon: 'library-outline' },
+  ];
+
+  // Memoize filtered destinations to avoid circular dependencies
+  const filteredDestinations = useMemo(() => {
+    let filtered = [...destinations];
+
+    // Filter by category
+    if (selectedCategory) {
+      filtered = filtered.filter(d => d.category === selectedCategory);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        d =>
+          d.name.toLowerCase().includes(query) ||
+          d.city.toLowerCase().includes(query) ||
+          d.region.toLowerCase().includes(query) ||
+          (d.description && d.description.toLowerCase().includes(query))
+      );
+    }
+
+    return filtered;
+  }, [destinations, selectedCategory, searchQuery]);
 
   useEffect(() => {
     requestLocationPermission();
@@ -45,15 +113,48 @@ const MapScreen = ({ navigation }) => {
       cardTranslateY.value = withSpring(0, ANIMATIONS.spring);
       cardOpacity.value = withTiming(1, { duration: ANIMATIONS.normal });
     } else {
-      cardTranslateY.value = withSpring(300, ANIMATIONS.spring);
+      cardTranslateY.value = withSpring(400, ANIMATIONS.spring);
       cardOpacity.value = withTiming(0, { duration: ANIMATIONS.normal });
     }
   }, [selectedDestination]);
 
+  useEffect(() => {
+    if (showFilters) {
+      filterPanelHeight.value = withSpring(200, ANIMATIONS.spring);
+    } else {
+      filterPanelHeight.value = withSpring(0, ANIMATIONS.spring);
+    }
+  }, [showFilters]);
+
+  useEffect(() => {
+    if (userLocation) {
+      calculateDistances();
+    }
+  }, [userLocation, filteredDestinations]);
+
+  // Recenter map to user location when tab is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userLocation && mapRef.current) {
+        // Small delay to ensure map is ready
+        setTimeout(() => {
+          mapRef.current?.animateToRegion({
+            ...userLocation,
+            latitudeDelta: 0.5,
+            longitudeDelta: 0.5,
+          }, 500);
+        }, 100);
+      } else if (!userLocation) {
+        // Request location if we don't have it yet
+        requestLocationPermission();
+      }
+    }, [userLocation])
+  );
+
   const loadDestinations = async () => {
     try {
       setLoading(true);
-      const data = await getDestinations();
+      const data = await getDestinations({});
       
       const transformedDestinations = data
         .filter(destination => destination.location && typeof destination.location === 'object')
@@ -61,10 +162,18 @@ const MapScreen = ({ navigation }) => {
           id: destination.id,
           name: destination.name,
           city: destination.city || '',
+          region: destination.region || '',
           category: destination.category || 'other',
-          lat: destination.location?.lat || 0,
-          lng: destination.location?.lng || 0,
+          lat: destination.location?.lat || destination.location?.coordinates?.[1] || 0,
+          lng: destination.location?.lng || destination.location?.coordinates?.[0] || 0,
+          images: destination.images || [],
+          description: destination.description || '',
+          rating: destination.rating || 4.5,
+          review_count: destination.review_count || 0,
+          price: destination.price || null,
+          tags: destination.tags || [],
           fullData: destination,
+          distance: null, // Will be calculated
         }));
       
       setDestinations(transformedDestinations);
@@ -75,41 +184,131 @@ const MapScreen = ({ navigation }) => {
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadDestinations();
+    setRefreshing(false);
+  };
+
   const requestLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
         });
-        setRegion({
+        const loc = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
+        };
+        setUserLocation(loc);
+        // Update region state for initial render
+        const newRegion = {
+          ...loc,
           latitudeDelta: 0.5,
           longitudeDelta: 0.5,
-        });
+        };
+        setRegion(newRegion);
+        // Animate to user location
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(newRegion, 500);
+        }
       }
     } catch (error) {
       console.log('Error getting location:', error);
     }
   };
 
+  const calculateDistances = () => {
+    if (!userLocation) return;
+
+    const destinationsWithDistance = filteredDestinations.map(dest => {
+      const distance = calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        dest.lat,
+        dest.lng
+      );
+      return { ...dest, distance };
+    });
+
+    // Sort by distance and get nearby ones
+    const nearby = [...destinationsWithDistance]
+      .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))
+      .slice(0, 5);
+    
+    setNearbyDestinations(nearby);
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+
   const handleMarkerPress = (destination) => {
     setSelectedDestination(destination);
-    setRegion({
-      latitude: destination.lat,
-      longitude: destination.lng,
-      latitudeDelta: 0.1,
-      longitudeDelta: 0.1,
-    });
+    // Animate map to destination
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: destination.lat,
+        longitude: destination.lng,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+      }, 500);
+    }
   };
 
   const handleViewDetails = () => {
     if (selectedDestination && selectedDestination.fullData) {
       navigation.navigate('DestinationDetail', { destination: selectedDestination.fullData });
     }
+  };
+
+  const handleGetDirections = () => {
+    if (selectedDestination && userLocation) {
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.latitude},${userLocation.longitude}&destination=${selectedDestination.lat},${selectedDestination.lng}`;
+      // You can use Linking.openURL(url) here if needed
+      console.log('Directions URL:', url);
+    }
+  };
+
+  const handleRecenter = () => {
+    if (userLocation && mapRef.current) {
+      mapRef.current.animateToRegion({
+        ...userLocation,
+        latitudeDelta: 0.5,
+        longitudeDelta: 0.5,
+      }, 500);
+    }
+  };
+
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategory(categoryId === selectedCategory ? null : categoryId);
+  };
+
+  const getMarkerColor = (category) => {
+    const colors = {
+      church: COLORS.primary,
+      religious: COLORS.primary,
+      historical: '#8B4513',
+      nature: COLORS.success,
+      adventure: COLORS.accent,
+      cultural: '#9B59B6',
+      monument: '#34495E',
+      park: COLORS.success,
+      museum: '#3498DB',
+    };
+    return colors[category] || COLORS.primary;
   };
 
   const getMarkerIcon = (category) => {
@@ -132,117 +331,424 @@ const MapScreen = ({ navigation }) => {
     opacity: cardOpacity.value,
   }));
 
+  const filterPanelStyle = useAnimatedStyle(() => ({
+    height: filterPanelHeight.value,
+    opacity: interpolate(
+      filterPanelHeight.value,
+      [0, 200],
+      [0, 1],
+      Extrapolate.CLAMP
+    ),
+  }));
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+      searchBarOpacity.value = interpolate(
+        event.contentOffset.y,
+        [0, 50],
+        [1, 0.7],
+        Extrapolate.CLAMP
+      );
+    },
+  });
+
+  const searchBarAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: searchBarOpacity.value,
+  }));
+
+  if (loading && destinations.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading destinations...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.mapContainer}>
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          region={region}
-          onRegionChangeComplete={setRegion}
-          scrollEnabled={true}
-          zoomEnabled={true}
-          pitchEnabled={true}
-          rotateEnabled={true}
-        >
+      {/* Map View */}
+      <MapView
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
+        style={styles.map}
+        region={region}
+        showsUserLocation={true}
+        showsMyLocationButton={false}
+        showsCompass={true}
+        mapType="standard"
+        customMapStyle={[]}
+      >
+        {/* User Location Marker */}
         {userLocation && (
           <Marker
             coordinate={userLocation}
             title="Your Location"
+            identifier="user-location"
           >
-            <View style={styles.userMarker}>
-              <View style={styles.userMarkerInner} />
-            </View>
-          </Marker>
-        )}
-
-        {destinations.map((destination) => (
-          <Marker
-            key={destination.id}
-            coordinate={{ latitude: destination.lat, longitude: destination.lng }}
-            title={destination.name}
-            description={destination.city}
-            onPress={() => handleMarkerPress(destination)}
-          >
-            <Animated.View style={styles.markerContainer}>
-              <View style={styles.markerBackground}>
-                <Text style={styles.markerIcon}>{getMarkerIcon(destination.category)}</Text>
+            <Animated.View style={styles.userMarkerContainer}>
+              <View style={styles.userMarkerPulse} />
+              <View style={styles.userMarker}>
+                <Ionicons name="person" size={16} color={COLORS.white} />
               </View>
             </Animated.View>
           </Marker>
-        ))}
-        </MapView>
-      </View>
+        )}
 
+        {/* Destination Markers */}
+        {filteredDestinations
+          .filter(destination => destination.category !== 'church' && destination.category !== 'religious')
+          .map((destination) => {
+            const isSelected = selectedDestination?.id === destination.id;
+            const markerColor = getMarkerColor(destination.category);
+            
+            return (
+              <Marker
+                key={destination.id}
+                coordinate={{ latitude: destination.lat, longitude: destination.lng }}
+                title={destination.name}
+                description={destination.city}
+                onPress={() => handleMarkerPress(destination)}
+                identifier={destination.id}
+              >
+                <Animated.View
+                  style={[
+                    styles.markerContainer,
+                    isSelected && styles.markerContainerSelected,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.markerBackground,
+                      { backgroundColor: markerColor },
+                      isSelected && styles.markerBackgroundSelected,
+                    ]}
+                  >
+                    <Text style={styles.markerIcon}>
+                      {getMarkerIcon(destination.category)}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <View style={[styles.markerPulse, { borderColor: markerColor }]} />
+                  )}
+                </Animated.View>
+              </Marker>
+            );
+          })}
+      </MapView>
+
+      {/* Header with Search */}
       <SafeAreaView style={styles.safeArea} edges={['top']} pointerEvents="box-none">
-        <View style={styles.header}>
-          <Text style={styles.title}>{t('mapView') || 'Map View'}</Text>
-          <Text style={styles.subtitle}>
-            {destinations.length} destinations available
-          </Text>
-        </View>
+        <Animated.View style={[styles.header, searchBarAnimatedStyle]}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color={COLORS.gray} style={styles.searchIcon} />
+            <Text
+              style={styles.searchInput}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              {searchQuery || 'Search destinations...'}
+            </Text>
+            {searchQuery ? (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.clearButton}
+              >
+                <Ionicons name="close-circle" size={20} color={COLORS.gray} />
+              </TouchableOpacity>
+            ) : (
+              <Ionicons name="options-outline" size={20} color={COLORS.gray} />
+            )}
+          </View>
+
+          {/* Category Filter Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryContainer}
+          >
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.id || 'all'}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === category.id && styles.categoryChipActive,
+                ]}
+                onPress={() => handleCategoryChange(category.id)}
+              >
+                <Ionicons
+                  name={category.icon}
+                  size={16}
+                  color={selectedCategory === category.id ? COLORS.white : COLORS.primary}
+                />
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    selectedCategory === category.id && styles.categoryChipTextActive,
+                  ]}
+                >
+                  {category.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Animated.View>
       </SafeAreaView>
 
-      {/* Animated Selected Destination Card */}
+      {/* View Mode Toggle */}
+      <View style={styles.viewModeContainer}>
+        <TouchableOpacity
+          style={[styles.viewModeButton, viewMode === 'map' && styles.viewModeButtonActive]}
+          onPress={() => setViewMode('map')}
+        >
+          <Ionicons
+            name="map"
+            size={20}
+            color={viewMode === 'map' ? COLORS.white : COLORS.primary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.viewModeButton, viewMode === 'list' && styles.viewModeButtonActive]}
+          onPress={() => setViewMode('list')}
+        >
+          <Ionicons
+            name="list"
+            size={20}
+            color={viewMode === 'list' ? COLORS.white : COLORS.primary}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <Animated.View style={styles.listViewContainer}>
+          <Animated.ScrollView
+            ref={scrollViewRef}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            style={styles.listScrollView}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            <Text style={styles.listHeader}>
+              {filteredDestinations.length} {filteredDestinations.length === 1 ? 'Destination' : 'Destinations'}
+            </Text>
+
+            {filteredDestinations.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="map-outline" size={64} color={COLORS.grayLight} />
+                <Text style={styles.emptyStateText}>No destinations found</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  Try adjusting your filters or search query
+                </Text>
+              </View>
+            ) : (
+              filteredDestinations.map((destination) => (
+                <TouchableOpacity
+                  key={destination.id}
+                  style={styles.listItem}
+                  onPress={() => {
+                    handleMarkerPress(destination);
+                    setViewMode('map');
+                  }}
+                >
+                  {destination.images && destination.images.length > 0 ? (
+                    <Image
+                      source={{ uri: destination.images[0] }}
+                      style={styles.listItemImage}
+                    />
+                  ) : (
+                    <View style={[styles.listItemImage, styles.listItemImagePlaceholder]}>
+                      <Ionicons name="image-outline" size={32} color={COLORS.grayLight} />
+                    </View>
+                  )}
+                  <View style={styles.listItemContent}>
+                    <Text style={styles.listItemTitle} numberOfLines={1}>
+                      {destination.name}
+                    </Text>
+                    <Text style={styles.listItemSubtitle} numberOfLines={1}>
+                      {destination.city} {destination.region ? `• ${destination.region}` : ''}
+                    </Text>
+                    <View style={styles.listItemFooter}>
+                      <View style={styles.listItemRating}>
+                        <Ionicons name="star" size={14} color={COLORS.primary} />
+                        <Text style={styles.listItemRatingText}>
+                          {destination.rating?.toFixed(1) || '4.5'}
+                        </Text>
+                      </View>
+                      {destination.distance !== null && (
+                        <Text style={styles.listItemDistance}>
+                          {destination.distance.toFixed(1)} km away
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+                </TouchableOpacity>
+              ))
+            )}
+          </Animated.ScrollView>
+        </Animated.View>
+      )}
+
+      {/* Nearby Destinations Panel */}
+      {viewMode === 'map' && nearbyDestinations.length > 0 && !selectedDestination && (
+        <Animated.View style={styles.nearbyPanel}>
+          <Text style={styles.nearbyPanelTitle}>Nearby Destinations</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {nearbyDestinations.map((dest) => (
+              <TouchableOpacity
+                key={dest.id}
+                style={styles.nearbyCard}
+                onPress={() => handleMarkerPress(dest)}
+              >
+                {dest.images && dest.images.length > 0 ? (
+                  <Image source={{ uri: dest.images[0] }} style={styles.nearbyCardImage} />
+                ) : (
+                  <View style={[styles.nearbyCardImage, styles.nearbyCardImagePlaceholder]}>
+                    <Text style={styles.nearbyCardIcon}>{getMarkerIcon(dest.category)}</Text>
+                  </View>
+                )}
+                <View style={styles.nearbyCardContent}>
+                  <Text style={styles.nearbyCardTitle} numberOfLines={1}>
+                    {dest.name}
+                  </Text>
+                  <Text style={styles.nearbyCardDistance}>
+                    {dest.distance?.toFixed(1) || '0'} km
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Animated.View>
+      )}
+
+      {/* Selected Destination Card */}
       {selectedDestination && (
         <Animated.View style={[styles.selectedCard, cardAnimatedStyle]}>
           <AnimatedCard variant="glass">
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardHeaderLeft}>
-                  <View style={styles.cardIcon}>
-                    <Text style={styles.cardIconText}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.cardScrollView}
+            >
+              <View style={styles.cardContent}>
+                {/* Image */}
+                {selectedDestination.images && selectedDestination.images.length > 0 ? (
+                  <Image
+                    source={{ uri: selectedDestination.images[0] }}
+                    style={styles.cardImage}
+                  />
+                ) : (
+                  <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+                    <Text style={styles.cardImageIcon}>
                       {getMarkerIcon(selectedDestination.category)}
                     </Text>
                   </View>
-                  <View style={styles.cardHeaderText}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {selectedDestination.name}
-                    </Text>
-                    <Text style={styles.cardSubtitle}>{selectedDestination.city}</Text>
+                )}
+
+                {/* Header */}
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardHeaderLeft}>
+                    <View style={styles.cardIcon}>
+                      <Text style={styles.cardIconText}>
+                        {getMarkerIcon(selectedDestination.category)}
+                      </Text>
+                    </View>
+                    <View style={styles.cardHeaderText}>
+                      <Text style={styles.cardTitle} numberOfLines={2}>
+                        {selectedDestination.name}
+                      </Text>
+                      <Text style={styles.cardSubtitle}>
+                        {selectedDestination.city}
+                        {selectedDestination.region && ` • ${selectedDestination.region}`}
+                      </Text>
+                    </View>
                   </View>
+                  <TouchableOpacity
+                    onPress={() => setSelectedDestination(null)}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons name="close-circle" size={28} color={COLORS.gray} />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity 
-                  onPress={() => setSelectedDestination(null)}
-                  style={styles.closeButton}
-                >
-                  <Ionicons name="close" size={24} color={COLORS.gray} />
-                </TouchableOpacity>
+
+                {/* Info Row */}
+                <View style={styles.cardInfoRow}>
+                  {selectedDestination.rating && (
+                    <View style={styles.cardInfoItem}>
+                      <Ionicons name="star" size={16} color={COLORS.primary} />
+                      <Text style={styles.cardInfoText}>
+                        {selectedDestination.rating.toFixed(1)}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedDestination.distance !== null && (
+                    <View style={styles.cardInfoItem}>
+                      <Ionicons name="location" size={16} color={COLORS.primary} />
+                      <Text style={styles.cardInfoText}>
+                        {selectedDestination.distance.toFixed(1)} km
+                      </Text>
+                    </View>
+                  )}
+                  {selectedDestination.category && (
+                    <View style={styles.cardCategoryBadge}>
+                      <Text style={styles.cardCategoryText}>
+                        {selectedDestination.category}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Description */}
+                {selectedDestination.description && (
+                  <Text style={styles.cardDescription} numberOfLines={3}>
+                    {selectedDestination.description}
+                  </Text>
+                )}
+
+                {/* Actions */}
+                <View style={styles.cardActions}>
+                  <ModernButton
+                    title="View Details"
+                    onPress={handleViewDetails}
+                    variant="primary"
+                    size="medium"
+                    style={styles.cardActionButton}
+                    icon="arrow-forward"
+                    iconPosition="right"
+                  />
+                  {userLocation && (
+                    <TouchableOpacity
+                      style={styles.directionsButton}
+                      onPress={handleGetDirections}
+                    >
+                      <Ionicons name="navigate" size={20} color={COLORS.primary} />
+                      <Text style={styles.directionsButtonText}>Directions</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-              {selectedDestination.category && (
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{selectedDestination.category}</Text>
-                </View>
-              )}
-              <ModernButton
-                title="View Details"
-                onPress={handleViewDetails}
-                variant="primary"
-                size="medium"
-                style={styles.viewButton}
-                icon="arrow-forward"
-                iconPosition="right"
-              />
-            </View>
+            </ScrollView>
           </AnimatedCard>
         </Animated.View>
       )}
 
-      {/* Recenter Button */}
-      {userLocation && (
+      {/* Action Buttons */}
+      <View style={styles.actionButtons}>
+        {userLocation && (
+          <TouchableOpacity style={styles.actionButton} onPress={handleRecenter}>
+            <Ionicons name="locate" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
-          style={styles.recenterButton}
-          onPress={() =>
-            setRegion({
-              ...userLocation,
-              latitudeDelta: 0.5,
-              longitudeDelta: 0.5,
-            })
-          }
+          style={styles.actionButton}
+          onPress={() => setShowFilters(!showFilters)}
         >
-          <Ionicons name="locate" size={24} color={COLORS.white} />
+          <Ionicons name="filter" size={24} color={COLORS.white} />
         </TouchableOpacity>
-      )}
+      </View>
     </View>
   );
 };
@@ -252,76 +758,308 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.backgroundSecondary,
   },
-  safeArea: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'transparent',
-    zIndex: 10,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
-  header: {
-    padding: SPACING.md,
-    paddingTop: SPACING.lg,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  title: {
-    fontSize: FONTS.sizes.xxxl,
-    fontWeight: '800',
-    color: COLORS.secondary,
-    letterSpacing: -1,
-    marginBottom: SPACING.xs,
-  },
-  subtitle: {
-    fontSize: FONTS.sizes.sm,
+  loadingText: {
+    marginTop: SPACING.md,
+    fontSize: FONTS.sizes.md,
     color: COLORS.gray,
-    fontWeight: '500',
-  },
-  mapContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   map: {
     flex: 1,
     width: '100%',
     height: '100%',
   },
+  safeArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  header: {
+    backgroundColor: COLORS.white,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderLight,
+    ...SHADOWS.medium,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  searchIcon: {
+    marginRight: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: FONTS.sizes.md,
+    color: COLORS.secondary,
+    paddingVertical: SPACING.xs,
+  },
+  clearButton: {
+    marginLeft: SPACING.xs,
+  },
+  categoryContainer: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    marginRight: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.lightGray,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryChipText: {
+    marginLeft: SPACING.xs,
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  categoryChipTextActive: {
+    color: COLORS.white,
+  },
+  viewModeContainer: {
+    position: 'absolute',
+    top: 120,
+    right: SPACING.md,
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.xs,
+    ...SHADOWS.medium,
+    zIndex: 5,
+  },
+  viewModeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BORDER_RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: SPACING.xs / 2,
+  },
+  viewModeButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  listViewContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.white,
+    zIndex: 20,
+  },
+  listScrollView: {
+    flex: 1,
+  },
+  listContent: {
+    padding: SPACING.md,
+    paddingTop: 180,
+  },
+  listHeader: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '800',
+    color: COLORS.secondary,
+    marginBottom: SPACING.md,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xxl * 2,
+  },
+  emptyStateText: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '600',
+    color: COLORS.secondary,
+    marginTop: SPACING.md,
+  },
+  emptyStateSubtext: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.gray,
+    marginTop: SPACING.xs,
+  },
+  listItem: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    ...SHADOWS.small,
+  },
+  listItemImage: {
+    width: 80,
+    height: 80,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.lightGray,
+  },
+  listItemImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listItemContent: {
+    flex: 1,
+    marginLeft: SPACING.md,
+    justifyContent: 'center',
+  },
+  listItemTitle: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '700',
+    color: COLORS.secondary,
+    marginBottom: SPACING.xs / 2,
+  },
+  listItemSubtitle: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray,
+    marginBottom: SPACING.xs,
+  },
+  listItemFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  listItemRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs / 2,
+  },
+  listItemRatingText: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '600',
+    color: COLORS.secondary,
+  },
+  listItemDistance: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray,
+  },
+  nearbyPanel: {
+    position: 'absolute',
+    bottom: 110, // Account for tab bar height (70) + padding (8) + bottom spacing (24) + extra padding (8)
+    left: SPACING.md,
+    right: SPACING.md,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    ...SHADOWS.large,
+    zIndex: 15,
+    maxHeight: 180,
+  },
+  nearbyPanelTitle: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '700',
+    color: COLORS.secondary,
+    marginBottom: SPACING.sm,
+  },
+  nearbyCard: {
+    width: 140,
+    marginRight: SPACING.sm,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+  },
+  nearbyCardImage: {
+    width: '100%',
+    height: 80,
+    backgroundColor: COLORS.lightGray,
+  },
+  nearbyCardImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nearbyCardIcon: {
+    fontSize: 32,
+  },
+  nearbyCardContent: {
+    padding: SPACING.sm,
+    minHeight: 50,
+  },
+  nearbyCardTitle: {
+    fontSize: FONTS.sizes.xs,
+    fontWeight: '600',
+    color: COLORS.secondary,
+    marginBottom: SPACING.xs / 2,
+    flexShrink: 1,
+  },
+  nearbyCardDistance: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.gray,
+  },
+  userMarkerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userMarkerPulse: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: `${COLORS.primary}30`,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
   userMarker: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: COLORS.primary,
-    borderWidth: 3,
-    borderColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: COLORS.white,
     ...SHADOWS.medium,
-  },
-  userMarkerInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.white,
   },
   markerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  markerContainerSelected: {
+    zIndex: 1000,
+  },
   markerBackground: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.white,
     ...SHADOWS.large,
+  },
+  markerBackgroundSelected: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 4,
+  },
+  markerPulse: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderStyle: 'dashed',
   },
   markerIcon: {
     fontSize: 24,
@@ -331,9 +1069,28 @@ const styles = StyleSheet.create({
     bottom: SPACING.md,
     left: SPACING.md,
     right: SPACING.md,
+    maxHeight: SCREEN_HEIGHT * 0.6,
+    zIndex: 20,
+  },
+  cardScrollView: {
+    maxHeight: SCREEN_HEIGHT * 0.6,
   },
   cardContent: {
     padding: SPACING.lg,
+  },
+  cardImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: BORDER_RADIUS.lg,
+    marginBottom: SPACING.md,
+    backgroundColor: COLORS.lightGray,
+  },
+  cardImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardImageIcon: {
+    fontSize: 64,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -376,28 +1133,67 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: SPACING.xs,
   },
-  categoryBadge: {
-    alignSelf: 'flex-start',
+  cardInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+    gap: SPACING.md,
+  },
+  cardInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs / 2,
+  },
+  cardInfoText: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '600',
+    color: COLORS.secondary,
+  },
+  cardCategoryBadge: {
     backgroundColor: `${COLORS.primary}15`,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.md,
   },
-  categoryText: {
+  cardCategoryText: {
     fontSize: FONTS.sizes.xs,
     color: COLORS.primary,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  viewButton: {
+  cardDescription: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray,
+    lineHeight: 20,
+    marginBottom: SPACING.md,
+  },
+  cardActions: {
+    gap: SPACING.sm,
+  },
+  cardActionButton: {
     width: '100%',
   },
-  recenterButton: {
+  directionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  directionsButtonText: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  actionButtons: {
     position: 'absolute',
-    top: 100,
+    bottom: 110, // Account for tab bar height (70) + padding (8) + bottom spacing (24) + extra padding (8)
     right: SPACING.md,
+    gap: SPACING.sm,
+    zIndex: 15,
+  },
+  actionButton: {
     width: 56,
     height: 56,
     borderRadius: 28,

@@ -138,7 +138,7 @@ export const initiateChapaPayment = async (paymentData) => {
       callback_url: PAYMENT_CONFIG.callbacks.webhook,
       return_url: `${PAYMENT_CONFIG.callbacks.success}?tx_ref=${transactionRef}`,
       customization: {
-        title: 'Tankua - Church Trip Booking',
+        title: 'Tankua - Trip Booking',
         description: `Booking payment - ${bookingId}`,
         logo: 'https://tankua.app/logo.png',
       },

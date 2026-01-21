@@ -5,27 +5,65 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../config/supabase';
+import Loader from '../components/Loader';
 
 const RewardsScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [points, setPoints] = useState(0);
   const [rewardsHistory, setRewardsHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // Calculate points from bookings (mock for now)
-    // In real app, fetch from database
-    setPoints(250);
-    setRewardsHistory([
-      { id: '1', type: 'earned', amount: 50, description: 'Trip booking', date: '2025-01-15' },
-      { id: '2', type: 'earned', amount: 100, description: 'Referral bonus', date: '2025-01-10' },
-      { id: '3', type: 'redeemed', amount: -25, description: 'Discount applied', date: '2025-01-05' },
-    ]);
-  }, []);
+    loadRewards();
+  }, [user]);
+
+  const loadRewards = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Load current points balance
+      const { data: pointsData, error: pointsError } = await supabase
+        .from('rewards_points')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (pointsError && pointsError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw pointsError;
+      }
+
+      setPoints(pointsData?.current_points || 0);
+
+      // Load transaction history
+      const { data: historyData, error: historyError } = await supabase
+        .from('rewards_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (historyError) throw historyError;
+      setRewardsHistory(historyData || []);
+    } catch (error) {
+      console.error('Error loading rewards:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -34,6 +72,21 @@ const RewardsScreen = ({ navigation }) => {
       year: 'numeric',
     });
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.secondary} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Rewards</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <Loader />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -48,6 +101,16 @@ const RewardsScreen = ({ navigation }) => {
       <ScrollView 
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadRewards();
+            }}
+            tintColor={COLORS.primary}
+          />
+        }
       >
         {/* Points Card */}
         <View style={styles.pointsCard}>
@@ -91,24 +154,24 @@ const RewardsScreen = ({ navigation }) => {
                 <View style={styles.historyLeft}>
                   <View style={[
                     styles.historyIcon,
-                    { backgroundColor: item.type === 'earned' ? `${COLORS.success}15` : `${COLORS.primary}15` }
+                    { backgroundColor: item.type === 'earned' ? `${COLORS.success}15` : item.type === 'redeemed' ? `${COLORS.primary}15` : `${COLORS.gray}15` }
                   ]}>
                     <Ionicons
-                      name={item.type === 'earned' ? 'add-circle' : 'remove-circle'}
+                      name={item.type === 'earned' ? 'add-circle' : item.type === 'redeemed' ? 'remove-circle' : 'time-outline'}
                       size={24}
-                      color={item.type === 'earned' ? COLORS.success : COLORS.primary}
+                      color={item.type === 'earned' ? COLORS.success : item.type === 'redeemed' ? COLORS.primary : COLORS.gray}
                     />
                   </View>
                   <View style={styles.historyInfo}>
                     <Text style={styles.historyDescription}>{item.description}</Text>
-                    <Text style={styles.historyDate}>{formatDate(item.date)}</Text>
+                    <Text style={styles.historyDate}>{formatDate(item.created_at)}</Text>
                   </View>
                 </View>
                 <Text style={[
                   styles.historyAmount,
-                  { color: item.type === 'earned' ? COLORS.success : COLORS.primary }
+                  { color: item.type === 'earned' ? COLORS.success : item.type === 'redeemed' ? COLORS.primary : COLORS.gray }
                 ]}>
-                  {item.type === 'earned' ? '+' : ''}{item.amount}
+                  {item.type === 'earned' ? '+' : '-'}{Math.abs(item.amount)}
                 </Text>
               </View>
             ))

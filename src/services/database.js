@@ -48,12 +48,13 @@ export const updateUser = async (userId, updates) => {
 };
 
 // ============================================
-// DESTINATIONS (formerly churches)
+// DESTINATIONS
 // ============================================
+// Note: Churches are just one category of destinations, not a separate entity
 
 // Helper to get table name (supports both old and new schema)
 const getDestinationsTable = () => {
-  // Try destinations first, fallback to churches for backward compatibility
+  // Always use destinations table (churches table is deprecated)
   return 'destinations';
 };
 
@@ -73,7 +74,7 @@ export const createDestination = async (destinationData) => {
   }
 };
 
-// Alias for backward compatibility
+// Deprecated: Alias for backward compatibility only - use createDestination instead
 export const createChurch = createDestination;
 
 export const getDestinations = async (filters = {}) => {
@@ -110,7 +111,7 @@ export const getDestinations = async (filters = {}) => {
   }
 };
 
-// Alias for backward compatibility
+// Deprecated: Alias for backward compatibility only - use getDestinations({ category: 'church' }) instead
 export const getChurches = async () => {
   return getDestinations({ category: 'church' });
 };
@@ -131,7 +132,7 @@ export const getDestination = async (destinationId) => {
   }
 };
 
-// Alias for backward compatibility
+// Deprecated: Alias for backward compatibility only - use getDestination instead
 export const getChurch = getDestination;
 
 export const updateDestination = async (destinationId, updates) => {
@@ -215,14 +216,14 @@ export const getTrips = async (filters = {}) => {
         )
       `);
     
-    // Support both destination_id and church_id for backward compatibility
+    // Support both destinationId and churchId for backward compatibility (churchId is deprecated)
     if (filters.destinationId || filters.churchId) {
       const idToUse = filters.destinationId || filters.churchId;
-      // Try destination_id first, fallback to church_id
+      // Try destination_id first, fallback to church_id (deprecated column)
       try {
         query = query.eq('destination_id', idToUse);
       } catch {
-        query = query.eq('church_id', idToUse);
+        query = query.eq('church_id', idToUse); // Deprecated: church_id column is legacy
       }
     }
     
@@ -270,7 +271,7 @@ export const getTrips = async (filters = {}) => {
     const { data, error } = await query;
 
     if (error) {
-      // If destination_id column doesn't exist, try with church_id (old schema)
+      // If destination_id column doesn't exist, try with church_id (deprecated - old schema)
       if (error.message?.includes('destination_id') || error.code === '42703') {
         query = supabase
           .from('trips')
@@ -293,7 +294,7 @@ export const getTrips = async (filters = {}) => {
           `);
         
         if (filters.destinationId || filters.churchId) {
-          query = query.eq('church_id', filters.destinationId || filters.churchId);
+          query = query.eq('church_id', filters.destinationId || filters.churchId); // Deprecated: church_id is legacy
         }
         
         query = query.in('status', ['upcoming', 'active']);
@@ -554,7 +555,7 @@ export const createProvider = async (providerData) => {
 
 export const getProviders = async (filters = {}) => {
   try {
-    // Support both destinationId and churchId for backward compatibility
+    // Support both destinationId and churchId for backward compatibility (churchId is deprecated)
     const destinationId = filters.destinationId || filters.churchId;
     
     // If destination and date filters are provided, find providers who have trips for that destination and date
@@ -576,11 +577,11 @@ export const getProviders = async (filters = {}) => {
         .gte('departure_date', dateStart)
         .lte('departure_date', dateEnd);
       
-      // Try destination_id first, fallback to church_id
+      // Try destination_id first, fallback to church_id (deprecated)
       try {
         query1 = query1.eq('destination_id', destinationId);
       } catch {
-        query1 = query1.eq('church_id', destinationId);
+        query1 = query1.eq('church_id', destinationId); // Deprecated: church_id is legacy
       }
       
       const { data: tripsWithDeparture, error: error1 } = await query1;
@@ -595,11 +596,11 @@ export const getProviders = async (filters = {}) => {
           .gte('available_seats', 1)
           .eq('date', filters.date);
         
-        // Try destination_id first, fallback to church_id
+        // Try destination_id first, fallback to church_id (deprecated)
         try {
           query2 = query2.eq('destination_id', destinationId);
         } catch {
-          query2 = query2.eq('church_id', destinationId);
+          query2 = query2.eq('church_id', destinationId); // Deprecated: church_id is legacy
         }
         
         const { data: tripsWithDate, error: error2 } = await query2;

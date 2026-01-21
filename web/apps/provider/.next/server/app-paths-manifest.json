@@ -1,8 +1,7 @@
 {
-  "/dashboard/trips/page": "app/dashboard/trips/page.js",
+  "/dashboard/vehicles/page": "app/dashboard/vehicles/page.js",
   "/dashboard/bookings/page": "app/dashboard/bookings/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/reviews/page": "app/dashboard/reviews/page.js",
-  "/dashboard/settings/page": "app/dashboard/settings/page.js",
-  "/dashboard/support/page": "app/dashboard/support/page.js"
+  "/dashboard/earnings/page": "app/dashboard/earnings/page.js",
+  "/dashboard/reports/page": "app/dashboard/reports/page.js",
+  "/dashboard/drivers/page": "app/dashboard/drivers/page.js"
 }

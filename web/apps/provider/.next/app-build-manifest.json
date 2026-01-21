@@ -31,25 +31,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/bookings/page.js"
     ],
-    "/dashboard/trips/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/trips/page.js"
-    ],
-    "/dashboard/trips/new/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/trips/new/page.js"
-    ],
     "/dashboard/drivers/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/drivers/page.js"
     ],
-    "/dashboard/settings/page": [
+    "/dashboard/vehicles/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/settings/page.js"
+      "static/chunks/app/dashboard/vehicles/page.js"
     ],
     "/dashboard/earnings/page": [
       "static/chunks/webpack.js",
@@ -60,16 +50,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/reports/page.js"
-    ],
-    "/dashboard/reviews/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/reviews/page.js"
-    ],
-    "/dashboard/support/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/support/page.js"
     ]
   }
 }

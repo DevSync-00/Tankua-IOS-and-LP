@@ -84,6 +84,28 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const newBookings = totalBookings - prevBookings;
   const bookingsChange = prevBookings > 0 ? Math.round((newBookings / prevBookings) * 100) : 0;
 
+  // Calculate trips change (previous 30 days vs current 30 days)
+  const prevTripsResult = await supabase
+    .from('trips')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'upcoming')
+    .gte('created_at', sixtyDaysAgo.toISOString())
+    .lt('created_at', thirtyDaysAgo.toISOString());
+  
+  const prevTrips = prevTripsResult.count || 0;
+  const tripsChange = prevTrips > 0 ? Math.round(((activeTrips - prevTrips) / prevTrips) * 100) : (activeTrips > 0 ? 100 : 0);
+
+  // Calculate providers change (previous 30 days vs current 30 days)
+  const prevProvidersResult = await supabase
+    .from('providers')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'active')
+    .gte('created_at', sixtyDaysAgo.toISOString())
+    .lt('created_at', thirtyDaysAgo.toISOString());
+  
+  const prevProviders = prevProvidersResult.count || 0;
+  const providersChange = prevProviders > 0 ? Math.round(((totalProviders - prevProviders) / prevProviders) * 100) : (totalProviders > 0 ? 100 : 0);
+
   return {
     totalUsers,
     totalBookings,
@@ -92,8 +114,112 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalRevenue,
     usersChange,
     bookingsChange,
-    tripsChange: 0, // TODO: Calculate actual change
-    providersChange: 0,
+    tripsChange,
+    providersChange,
+  };
+}
+
+export interface BookingTrend {
+  date: string;
+  bookings: number;
+  revenue: number;
+}
+
+export interface RevenueAnalytics {
+  totalRevenue: number;
+  monthlyRevenue: number;
+  averageBookingValue: number;
+  revenueByStatus: { status: string; revenue: number }[];
+}
+
+export async function getBookingTrends(days: number = 30): Promise<BookingTrend[]> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('created_at, total_price, payment_status')
+    .gte('created_at', startDate.toISOString())
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching booking trends:', error);
+    return [];
+  }
+
+  // Group by date
+  const trendsMap = new Map<string, { bookings: number; revenue: number }>();
+  
+  (data || []).forEach((booking: any) => {
+    const date = new Date(booking.created_at).toISOString().split('T')[0];
+    const existing = trendsMap.get(date) || { bookings: 0, revenue: 0 };
+    trendsMap.set(date, {
+      bookings: existing.bookings + 1,
+      revenue: existing.revenue + (booking.payment_status === 'paid' ? (booking.total_price || 0) : 0),
+    });
+  });
+
+  // Fill in missing dates
+  const trends: BookingTrend[] = [];
+  const currentDate = new Date(startDate);
+  const today = new Date();
+  
+  while (currentDate <= today) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const data = trendsMap.get(dateStr) || { bookings: 0, revenue: 0 };
+    trends.push({
+      date: dateStr,
+      bookings: data.bookings,
+      revenue: data.revenue,
+    });
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return trends;
+}
+
+export async function getRevenueAnalytics(): Promise<RevenueAnalytics> {
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [
+    allBookings,
+    monthlyBookings,
+  ] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('total_price, payment_status, status')
+      .eq('payment_status', 'paid'),
+    supabase
+      .from('bookings')
+      .select('total_price, payment_status')
+      .eq('payment_status', 'paid')
+      .gte('created_at', firstDayOfMonth.toISOString()),
+  ]);
+
+  const totalRevenue = allBookings.data?.reduce((sum, b) => sum + (b.total_price || 0), 0) || 0;
+  const monthlyRevenue = monthlyBookings.data?.reduce((sum, b) => sum + (b.total_price || 0), 0) || 0;
+  const totalBookings = allBookings.data?.length || 0;
+  const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+
+  // Revenue by status
+  const revenueByStatusMap = new Map<string, number>();
+  allBookings.data?.forEach((booking: any) => {
+    const status = booking.status || 'unknown';
+    const existing = revenueByStatusMap.get(status) || 0;
+    revenueByStatusMap.set(status, existing + (booking.total_price || 0));
+  });
+
+  const revenueByStatus = Array.from(revenueByStatusMap.entries()).map(([status, revenue]) => ({
+    status,
+    revenue,
+  }));
+
+  return {
+    totalRevenue,
+    monthlyRevenue,
+    averageBookingValue,
+    revenueByStatus,
   };
 }
 
@@ -165,10 +291,11 @@ export async function getTopProviders(limit = 4): Promise<TopProvider[]> {
 }
 
 export async function getTopChurches(limit = 4): Promise<TopChurch[]> {
+  // Get top destinations with category = 'church' (churches are just a category)
   const { data, error } = await supabase
     .from('destinations')
     .select('id, name, region')
-    .eq('category', 'church') // Only get churches
+    .eq('category', 'church') // Filter by church category
     .limit(limit);
 
   if (error) {
@@ -176,7 +303,7 @@ export async function getTopChurches(limit = 4): Promise<TopChurch[]> {
     return [];
   }
 
-  // Get booking counts for each church (using destination_id)
+  // Get booking counts for each destination with church category (using destination_id)
   const churchesWithStats = await Promise.all(
     (data || []).map(async (church: any) => {
       const { count } = await supabase
@@ -522,6 +649,8 @@ export async function createProvider(provider: {
 // ============================================
 // CHURCHES MANAGEMENT
 // ============================================
+// Note: Churches are just one category of destinations (category = 'church')
+// These functions are convenience wrappers for managing destinations with category='church'
 
 export interface Church {
   id: string;
@@ -536,7 +665,7 @@ export interface Church {
   created_at: string;
 }
 
-// Churches are destinations with category = 'church'
+// Get destinations with category = 'church' (churches are just a category, not a separate entity)
 export async function getChurches(options?: {
   limit?: number;
   offset?: number;
@@ -673,7 +802,7 @@ export async function updateDestination(
 export async function createChurch(
   church: Omit<Church, 'id' | 'created_at'>
 ): Promise<Church | null> {
-  // Create as destination with category = 'church'
+  // Create a destination with category = 'church' (churches are just a category)
   const location = church.latitude && church.longitude 
     ? { lat: church.latitude, lng: church.longitude, coordinates: [church.longitude, church.latitude] }
     : null;

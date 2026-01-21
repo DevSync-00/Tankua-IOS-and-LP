@@ -1,13 +1,82 @@
 import 'react-native-url-polyfill/auto';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthProvider } from './src/contexts/AuthContext';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { BookingProvider } from './src/contexts/BookingContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import * as Notifications from 'expo-notifications';
+import { addNotificationReceivedListener, addNotificationResponseListener, setBadgeCount } from './src/services/notifications';
+import { supabase } from './src/config/supabase';
+
+// Component to handle notification listeners
+function NotificationHandler({ children }) {
+  const { user } = useAuth();
+  const notificationListener = useRef(null);
+  const responseListener = useRef(null);
+
+  useEffect(() => {
+    // Set up notification received listener (when app is in foreground)
+    notificationListener.current = addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+      // Update badge count
+      updateBadgeCount();
+    });
+
+    // Set up notification response listener (when user taps notification)
+    responseListener.current = addNotificationResponseListener(response => {
+      console.log('Notification tapped:', response);
+      const data = response.notification.request.content.data;
+      
+      // Handle navigation based on notification type
+      if (data?.type === 'booking_confirmation' || data?.type === 'payment_success') {
+        // Navigate to ticket screen if needed
+        // Navigation is handled by the notification screen
+      }
+    });
+
+    // Update badge count on mount
+    updateBadgeCount();
+
+    // Set up interval to update badge count periodically
+    const interval = setInterval(updateBadgeCount, 60000); // Every minute
+
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+      clearInterval(interval);
+    };
+  }, [user]);
+
+  const updateBadgeCount = async () => {
+    if (!user?.id) {
+      await setBadgeCount(0);
+      return;
+    }
+
+    try {
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_type', 'user')
+        .eq('recipient_id', user.id)
+        .eq('is_read', false);
+
+      await setBadgeCount(count || 0);
+    } catch (error) {
+      console.error('Error updating badge count:', error);
+    }
+  };
+
+  return children;
+}
 
 export default function App() {
   return (
@@ -15,12 +84,14 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <LanguageProvider>
           <AuthProvider>
-            <BookingProvider>
-              <NavigationContainer>
-                <StatusBar style="light" />
-                <AppNavigator />
-              </NavigationContainer>
-            </BookingProvider>
+            <NotificationHandler>
+              <BookingProvider>
+                <NavigationContainer>
+                  <StatusBar style="light" />
+                  <AppNavigator />
+                </NavigationContainer>
+              </BookingProvider>
+            </NotificationHandler>
           </AuthProvider>
         </LanguageProvider>
       </GestureHandlerRootView>

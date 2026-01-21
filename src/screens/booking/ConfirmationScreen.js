@@ -30,7 +30,7 @@ const ConfirmationScreen = ({ navigation, route }) => {
   useEffect(() => {
     // Only create booking if it wasn't passed via route params
     if (!route.params?.booking) {
-      finalizeBooking();
+    finalizeBooking();
     }
   }, []);
 

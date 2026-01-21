@@ -32,7 +32,7 @@ const SelectTripScreen = ({ navigation }) => {
     try {
       setLoading(true);
       
-      // Support both destination and church (backward compatibility)
+      // Support both destination and church (backward compatibility - church is deprecated)
       const destination = currentBooking.destination || currentBooking.church;
       
       if (!destination?.id) {
@@ -61,7 +61,7 @@ const SelectTripScreen = ({ navigation }) => {
 
       const filters = {
         destinationId: destination.id,
-        churchId: destination.id, // Keep for backward compatibility
+        churchId: destination.id, // Deprecated: kept for backward compatibility only
       };
 
       const data = await getTrips(filters);

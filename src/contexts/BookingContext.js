@@ -15,7 +15,7 @@ export const useBooking = () => {
 export const BookingProvider = ({ children }) => {
   const [currentBooking, setCurrentBooking] = useState({
     destination: null,
-    church: null, // Keep for backward compatibility
+    church: null, // Deprecated: kept for backward compatibility only - use destination instead
     provider: null,
     trip: null,
     tripType: null,
@@ -34,7 +34,7 @@ export const BookingProvider = ({ children }) => {
   const resetBooking = () => {
     setCurrentBooking({
       destination: null,
-      church: null, // Keep for backward compatibility
+      church: null, // Deprecated: kept for backward compatibility only - use destination instead
       provider: null,
       trip: null,
       tripType: null,
@@ -70,7 +70,7 @@ export const BookingProvider = ({ children }) => {
       const paymentDeadline = new Date();
       paymentDeadline.setHours(paymentDeadline.getHours() + 2);
 
-      // Support both destination and church (backward compatibility)
+      // Support both destination and church (backward compatibility - church is deprecated)
       const destination = currentBooking.destination || currentBooking.church;
       
       // Validate destination_id - only use if it's a valid UUID

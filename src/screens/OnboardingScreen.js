@@ -30,10 +30,10 @@ const OnboardingScreen = ({ navigation }) => {
   const slides = [
     {
       id: '1',
-      title: t('onboarding1Title') || 'Discover Sacred Places',
-      description: t('onboarding1Desc') || 'Explore Ethiopia\'s most beautiful churches and monasteries with ease.',
+      title: t('onboarding1Title') || 'Discover Amazing Places',
+      description: t('onboarding1Desc') || 'Explore Ethiopia\'s most beautiful destinations and attractions with ease.',
       icon: 'location',
-      emoji: '⛪',
+      emoji: '📍',
       color: COLORS.primary,
     },
     {
@@ -47,7 +47,7 @@ const OnboardingScreen = ({ navigation }) => {
     {
       id: '3',
       title: t('onboarding3Title') || 'Travel in Peace',
-      description: t('onboarding3Desc') || 'Join thousands of pilgrims on safe and comfortable trips.',
+      description: t('onboarding3Desc') || 'Join thousands of travelers on safe and comfortable trips.',
       icon: 'heart',
       emoji: '✨',
       color: COLORS.primary,

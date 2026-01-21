@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
+import { registerForPushNotifications, savePushToken } from '../services/notifications';
 
 const AuthContext = createContext();
 
@@ -73,6 +74,11 @@ export const AuthProvider = ({ children }) => {
       } else if (session?.user) {
         // Session is valid, load fresh user profile
         await loadUserProfile(session.user.id);
+        // Register for push notifications
+        const pushToken = await registerForPushNotifications();
+        if (pushToken && session.user.id) {
+          await savePushToken(session.user.id, pushToken);
+        }
       } else {
         // No valid session, clear user state
         if (cachedUser) {

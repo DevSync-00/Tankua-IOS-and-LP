@@ -53,11 +53,38 @@ export async function registerForPushNotifications() {
       return null;
     }
 
+    // Get project ID from environment variable
+    // Expo SDK 50+ can often infer projectId from app.json, but if not available,
+    // you can set EXPO_PUBLIC_PROJECT_ID in your .env file
+    const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
+
     // Get push token
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-    });
-    token = tokenData.data;
+    // If projectId is not provided, Expo will try to infer it from app.json
+    // If that fails, you'll need to set EXPO_PUBLIC_PROJECT_ID in your .env file
+    let tokenData;
+    try {
+      if (projectId) {
+        tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: projectId,
+        });
+      } else {
+        // Try without projectId - Expo SDK 50+ can often infer it from app.json
+        tokenData = await Notifications.getExpoPushTokenAsync();
+      }
+      token = tokenData.data;
+    } catch (error) {
+      console.error('Error getting push token:', error);
+      // If error is about projectId, provide helpful message
+      if (error.message?.includes('projectId')) {
+        console.warn(
+          'Push notifications require a projectId. ' +
+          'To fix this, either:\n' +
+          '1. Add EXPO_PUBLIC_PROJECT_ID to your .env file, or\n' +
+          '2. Run "npx expo install expo-constants" and ensure your app.json has the projectId configured'
+        );
+      }
+      return null;
+    }
 
     // Store token locally
     await AsyncStorage.setItem('pushToken', token);
@@ -169,7 +196,7 @@ export async function scheduleTripReminder(booking) {
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: '🚐 Trip Tomorrow!',
-        body: `Don't forget your trip to ${booking.churchName}. Pickup at ${booking.pickupTime} from ${booking.pickupStation}.`,
+        body: `Don't forget your trip to ${booking.destinationName || booking.churchName || 'your destination'}. Pickup at ${booking.pickupTime} from ${booking.pickupStation}.`,
         data: {
           type: 'trip_reminder',
           bookingId: booking.id,
@@ -217,7 +244,7 @@ export async function cancelTripReminder(bookingId) {
 export async function showBookingConfirmation(booking) {
   return scheduleLocalNotification({
     title: '✅ Booking Confirmed!',
-    body: `Your trip to ${booking.churchName} is confirmed for ${booking.tripDate}. Check your tickets in the app.`,
+    body: `Your trip to ${booking.destinationName || booking.churchName || 'your destination'} is confirmed for ${booking.tripDate}. Check your tickets in the app.`,
     data: {
       type: 'booking_confirmation',
       bookingId: booking.id,
@@ -247,7 +274,7 @@ export async function showPaymentSuccess(booking) {
 export async function showBookingCancellation(booking, reason) {
   return scheduleLocalNotification({
     title: '❌ Booking Cancelled',
-    body: reason || `Your booking for ${booking.churchName} has been cancelled.`,
+    body: reason || `Your booking for ${booking.destinationName || booking.churchName || 'your destination'} has been cancelled.`,
     data: {
       type: 'booking_cancelled',
       bookingId: booking.id,

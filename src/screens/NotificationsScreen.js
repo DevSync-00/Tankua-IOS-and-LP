@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { setBadgeCount } from '../services/notifications';
 import Loader from '../components/Loader';
 
 const NotificationsScreen = ({ navigation }) => {
@@ -38,6 +39,10 @@ const NotificationsScreen = ({ navigation }) => {
 
       if (error) throw error;
       setNotifications(data || []);
+
+      // Update badge count
+      const unreadCount = (data || []).filter(n => !n.is_read).length;
+      await setBadgeCount(unreadCount);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
@@ -53,9 +58,13 @@ const NotificationsScreen = ({ navigation }) => {
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
       
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-      );
+      setNotifications(prev => {
+        const updated = prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n);
+        // Calculate unread count from the updated state
+        const unreadCount = updated.filter(n => !n.is_read).length;
+        setBadgeCount(unreadCount);
+        return updated;
+      });
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }

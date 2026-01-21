@@ -34,7 +34,7 @@ export const initiateChapaPayment = async (paymentData) => {
       callback_url: PAYMENT_CONFIG.callbacks.webhook,
       return_url: PAYMENT_CONFIG.callbacks.success,
       customization: {
-        title: 'Tankua - Church Trip Booking',
+        title: 'Tankua - Trip Booking',
         description: `Payment for booking ${bookingId}`,
       },
     };

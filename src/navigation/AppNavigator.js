@@ -12,7 +12,7 @@ import LoginScreen from '../screens/LoginScreen';
 // Main Screens
 import MainTabNavigator from './MainTabNavigator';
 import DestinationDetailScreen from '../screens/DestinationDetailScreen';
-import ChurchDetailScreen from '../screens/ChurchDetailScreen'; // Keep for backward compatibility
+import ChurchDetailScreen from '../screens/ChurchDetailScreen'; // Deprecated: kept for backward compatibility only - use DestinationDetailScreen instead
 import BookingFlowNavigator from './BookingFlowNavigator';
 import TicketScreen from '../screens/TicketScreen';
 
@@ -26,6 +26,7 @@ import RewardsScreen from '../screens/RewardsScreen';
 import ReferFriendScreen from '../screens/ReferFriendScreen';
 import SuggestRouteScreen from '../screens/SuggestRouteScreen';
 import CloseFriendsScreen from '../screens/CloseFriendsScreen';
+import ReviewScreen from '../screens/ReviewScreen';
 
 // Admin Screens
 import AddAdminScreen from '../screens/admin/AddAdminScreen';
@@ -63,6 +64,7 @@ const AppNavigator = () => {
             name="ChurchDetail" 
             component={ChurchDetailScreen}
             options={{ headerShown: true, headerTitle: '' }}
+            // Deprecated: kept for backward compatibility only - use DestinationDetail instead
           />
           <Stack.Screen 
             name="BookingFlow" 
@@ -117,6 +119,11 @@ const AppNavigator = () => {
             name="CloseFriends" 
             component={CloseFriendsScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Review" 
+            component={ReviewScreen}
+            options={{ headerShown: true, headerTitle: 'Rate Your Trip' }}
           />
           <Stack.Screen 
             name="AddAdmin" 
