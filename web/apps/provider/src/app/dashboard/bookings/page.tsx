@@ -26,12 +26,45 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState<{ start: string; end: string } | null>(null);
+  const [destinationFilter, setDestinationFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
   const [totalBookings, setTotalBookings] = useState(0);
+  const [destinations, setDestinations] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     loadProviderSession();
   }, [router]);
+
+  const loadDestinations = () => {
+    // Extract unique destinations from bookings
+    const uniqueDestinations = new Map<string, { id: string; name: string }>();
+    
+    bookings.forEach((booking) => {
+      const destinationName = booking.trip?.destination?.name || booking.destination_name;
+      const destinationId = booking.trip?.destination?.id || booking.destination_id;
+      
+      if (destinationName && destinationId) {
+        if (!uniqueDestinations.has(destinationId)) {
+          uniqueDestinations.set(destinationId, {
+            id: destinationId,
+            name: destinationName,
+          });
+        }
+      }
+    });
+    
+    setDestinations(Array.from(uniqueDestinations.values()));
+  };
+
+  useEffect(() => {
+    // Reload destinations when bookings change
+    if (bookings.length > 0) {
+      loadDestinations();
+    }
+  }, [bookings]);
 
   const loadProviderSession = () => {
     try {
@@ -108,8 +141,24 @@ export default function BookingsPage() {
       customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bookingId.includes(searchQuery.toLowerCase()) ||
       destinationName.toLowerCase().includes(searchQuery.toLowerCase());
+    
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesPayment = paymentFilter === "all" || booking.payment_status === paymentFilter;
+    
+    const matchesDestination = destinationFilter === "all" || 
+      destinationName === destinationFilter;
+    
+    let matchesDate = true;
+    if (dateRangeFilter?.start && dateRangeFilter?.end) {
+      const bookingDate = booking.trip?.departure_date || booking.created_at;
+      const bookingDateObj = new Date(bookingDate);
+      const startDate = new Date(dateRangeFilter.start);
+      const endDate = new Date(dateRangeFilter.end);
+      endDate.setHours(23, 59, 59, 999); // Include entire end date
+      matchesDate = bookingDateObj >= startDate && bookingDateObj <= endDate;
+    }
+    
+    return matchesSearch && matchesStatus && matchesPayment && matchesDestination && matchesDate;
   });
 
   const getStatusBadge = (status: string) => {
@@ -227,13 +276,95 @@ export default function BookingsPage() {
               <option value="all">All Status</option>
               <option value="confirmed">Confirmed</option>
               <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-            <Button variant="outline" leftIcon={<Calendar className="h-4 w-4" />}>
-              Date Range
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
+              <option value="all">All Payments</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="refunded">Refunded</option>
+            </select>
+            <Button 
+              variant="outline" 
+              leftIcon={<Filter className="h-4 w-4" />}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              More Filters
             </Button>
           </div>
         </div>
+
+        {/* Advanced Filters Panel */}
+        {showFilters && (
+          <Card className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                  Destination
+                </label>
+                <select
+                  value={destinationFilter}
+                  onChange={(e) => setDestinationFilter(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="all">All Destinations</option>
+                  {destinations.map((dest) => (
+                    <option key={dest.id} value={dest.name}>
+                      {dest.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={dateRangeFilter?.start || ""}
+                  onChange={(e) => setDateRangeFilter({
+                    ...dateRangeFilter || { start: "", end: "" },
+                    start: e.target.value
+                  })}
+                  className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={dateRangeFilter?.end || ""}
+                  onChange={(e) => setDateRangeFilter({
+                    ...dateRangeFilter || { start: "", end: "" },
+                    end: e.target.value
+                  })}
+                  className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+            </div>
+            {(dateRangeFilter?.start || dateRangeFilter?.end || destinationFilter !== "all") && (
+              <div className="mt-4 flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setDateRangeFilter(null);
+                    setDestinationFilter("all");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

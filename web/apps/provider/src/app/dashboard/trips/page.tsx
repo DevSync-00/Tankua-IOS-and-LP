@@ -14,6 +14,7 @@ import {
   Trash2,
   Eye,
   RefreshCw,
+  Copy,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Card, CardContent, Button, Badge, formatCurrency } from "@tankua/ui";
@@ -183,6 +184,11 @@ export default function TripsPage() {
             >
               Refresh
             </Button>
+            <Link href="/dashboard/trips/bulk">
+              <Button variant="outline" size="sm" leftIcon={<Copy className="h-4 w-4" />}>
+                Bulk Create
+              </Button>
+            </Link>
             <Link href="/dashboard/trips/new">
               <Button size="sm" leftIcon={<Plus className="h-4 w-4" />}>
                 Create Trip

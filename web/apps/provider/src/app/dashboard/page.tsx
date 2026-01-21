@@ -24,9 +24,11 @@ import {
   getProviderStats,
   getUpcomingTrips,
   getRecentBookings,
+  getRecentReviews,
   type ProviderStats,
   type UpcomingTrip,
   type RecentBooking,
+  type RecentReview,
 } from "@/lib/queries";
 
 export default function DashboardPage() {
@@ -36,6 +38,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<ProviderStats | null>(null);
   const [upcomingTrips, setUpcomingTrips] = useState<UpcomingTrip[]>([]);
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [recentReviews, setRecentReviews] = useState<RecentReview[]>([]);
 
   useEffect(() => {
     loadProviderSession();
@@ -68,15 +71,17 @@ export default function DashboardPage() {
   const loadDashboardData = async (id: string) => {
     setLoading(true);
     try {
-      const [statsData, tripsData, bookingsData] = await Promise.all([
+      const [statsData, tripsData, bookingsData, reviewsData] = await Promise.all([
         getProviderStats(id),
         getUpcomingTrips(id, 3),
         getRecentBookings(id, 4),
+        getRecentReviews(id, 3),
       ]);
 
       setStats(statsData);
       setUpcomingTrips(tripsData);
       setRecentBookings(bookingsData);
+      setRecentReviews(reviewsData);
     } catch (error) {
       console.error("Error loading dashboard:", error);
     } finally {
@@ -110,17 +115,10 @@ export default function DashboardPage() {
     {
       title: "Average Rating",
       value: stats?.averageRating?.toFixed(1) || "0.0",
-      change: 2,
+      change: 0, // Rating change not calculated for now
       changeLabel: "this month",
       icon: <Star className="h-6 w-6" />,
     },
-  ];
-
-  // Mock reviews for now (will be fetched from DB later)
-  const recentReviews = [
-    { customer: "Daniel H.", rating: 5, comment: "Excellent service! The driver was very knowledgeable.", trip: "Lalibela", date: "2 days ago" },
-    { customer: "Hana T.", rating: 5, comment: "Smooth journey and on-time pickup. Highly recommended!", trip: "Lake Tana", date: "3 days ago" },
-    { customer: "Yared S.", rating: 4, comment: "Good experience overall. Could improve AC.", trip: "Lalibela", date: "5 days ago" },
   ];
 
   if (loading) {
@@ -304,7 +302,13 @@ export default function DashboardPage() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentReviews.map((review, index) => (
+              {recentReviews.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Star className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No reviews yet</p>
+                </div>
+              ) : (
+                recentReviews.map((review, index) => (
                 <div key={index} className="p-4 bg-muted/30 rounded-xl">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
@@ -322,7 +326,8 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-sm text-muted-foreground italic">"{review.comment}"</p>
                 </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 

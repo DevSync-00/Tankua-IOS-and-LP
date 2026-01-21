@@ -83,13 +83,47 @@ export async function getProviderStats(providerId: string): Promise<ProviderStat
     .eq('provider_id', providerId)
     .eq('status', 'upcoming');
 
+  // Calculate bookings change (yesterday vs today)
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const { count: yesterdayBookings } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('provider_id', providerId)
+    .gte('created_at', yesterday.toISOString())
+    .lt('created_at', today.toISOString());
+
+  const todayBookings = todayBookingsResult.count || 0;
+  const yesterdayBookingsCount = yesterdayBookings || 0;
+  const bookingsChange = yesterdayBookingsCount > 0 
+    ? Math.round(((todayBookings - yesterdayBookingsCount) / yesterdayBookingsCount) * 100)
+    : (todayBookings > 0 ? 100 : 0);
+
+  // Calculate earnings change (last month vs this month)
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+  const { data: lastMonthEarningsData } = await supabase
+    .from('bookings')
+    .select('total_price')
+    .eq('provider_id', providerId)
+    .eq('payment_status', 'paid')
+    .gte('created_at', lastMonthStart.toISOString())
+    .lte('created_at', lastMonthEnd.toISOString());
+
+  const lastMonthEarnings = lastMonthEarningsData?.reduce(
+    (sum, b) => sum + (b.total_price || 0), 0
+  ) || 0;
+  const earningsChange = lastMonthEarnings > 0
+    ? Math.round(((monthlyEarnings - lastMonthEarnings) / lastMonthEarnings) * 100)
+    : (monthlyEarnings > 0 ? 100 : 0);
+
   return {
-    todayBookings: todayBookingsResult.count || 0,
+    todayBookings,
     monthlyEarnings,
     activeTrips: activeTrips || 0,
     averageRating: providerResult.data?.rating || 0,
-    bookingsChange: 20, // TODO: Calculate actual change
-    earningsChange: 15,
+    bookingsChange,
+    earningsChange,
   };
 }
 
@@ -249,6 +283,65 @@ export async function getRecentBookings(providerId: string, limit = 4): Promise<
       status: booking.status,
     };
   });
+}
+
+export async function getRecentReviews(providerId: string, limit = 3): Promise<RecentReview[]> {
+  try {
+    // Fetch reviews directly from reviews table
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(`
+        id,
+        rating,
+        comment,
+        created_at,
+        users (name),
+        bookings (
+          trips (
+            destinations (name)
+          )
+        )
+      `)
+      .eq('provider_id', providerId)
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent reviews:', error);
+      return [];
+    }
+
+    return (data || []).map((review: any) => {
+      const now = new Date();
+      const reviewDate = new Date(review.created_at);
+      const diffMs = now.getTime() - reviewDate.getTime();
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      let dateStr: string;
+      if (diffDays === 0) {
+        dateStr = 'today';
+      } else if (diffDays === 1) {
+        dateStr = '1 day ago';
+      } else {
+        dateStr = `${diffDays} days ago`;
+      }
+
+      const customerName = review.users?.name || 'Anonymous';
+      const initials = customerName.split(' ').map((n: string) => n[0]).join('') + '.';
+
+      return {
+        customer: initials,
+        rating: review.rating || 5,
+        comment: review.comment || 'No comment',
+        trip: review.bookings?.trips?.destinations?.name || 'Unknown',
+        date: dateStr,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching recent reviews:', error);
+    return [];
+  }
 }
 
 // ============================================

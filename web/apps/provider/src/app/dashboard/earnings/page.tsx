@@ -26,6 +26,9 @@ export default function EarningsPage() {
   const [earningsData, setEarningsData] = useState<EarningsSummary | null>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [timeRange, setTimeRange] = useState("30d");
+  const [earningsByDestination, setEarningsByDestination] = useState<Array<{ destination: string; earnings: number; bookings: number }>>([]);
+  const [earningsByTrip, setEarningsByTrip] = useState<Array<{ tripId: string; destination: string; date: string; earnings: number; bookings: number }>>([]);
+  const [breakdownView, setBreakdownView] = useState<"destination" | "trip">("destination");
 
   useEffect(() => {
     loadProviderSession();
@@ -87,6 +90,47 @@ export default function EarningsPage() {
         .slice(0, 10);
 
       setTransactions(transactionList);
+
+      // Calculate earnings by destination
+      const destinationMap = new Map<string, { earnings: number; bookings: number }>();
+      bookings
+        .filter(b => b.payment_status === 'paid')
+        .forEach(b => {
+          const destName = b.trip?.destination?.name || b.destination_name || 'Unknown';
+          const existing = destinationMap.get(destName) || { earnings: 0, bookings: 0 };
+          destinationMap.set(destName, {
+            earnings: existing.earnings + b.total_price,
+            bookings: existing.bookings + 1,
+          });
+        });
+      
+      setEarningsByDestination(
+        Array.from(destinationMap.entries())
+          .map(([destination, data]) => ({ destination, ...data }))
+          .sort((a, b) => b.earnings - a.earnings)
+      );
+
+      // Calculate earnings by trip
+      const tripMap = new Map<string, { destination: string; date: string; earnings: number; bookings: number }>();
+      bookings
+        .filter(b => b.payment_status === 'paid' && b.trip)
+        .forEach(b => {
+          const tripId = b.trip!.id;
+          const destName = b.trip!.destination?.name || b.destination_name || 'Unknown';
+          const tripDate = b.trip!.departure_date || b.created_at;
+          const existing = tripMap.get(tripId) || { destination: destName, date: tripDate, earnings: 0, bookings: 0 };
+          tripMap.set(tripId, {
+            ...existing,
+            earnings: existing.earnings + b.total_price,
+            bookings: existing.bookings + 1,
+          });
+        });
+      
+      setEarningsByTrip(
+        Array.from(tripMap.values())
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 20) // Top 20 trips
+      );
     } catch (error) {
       console.error("Error loading earnings data:", error);
     } finally {
@@ -309,30 +353,112 @@ export default function EarningsPage() {
 
         {/* Earnings Breakdown */}
         {earningsData && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Earnings Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-3 gap-6">
-                <div className="p-6 bg-muted/30 rounded-xl text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Gross Earnings</p>
-                  <p className="text-3xl font-bold">{formatCurrency(earningsData.totalEarnings)}</p>
-                  <p className="text-sm text-muted-foreground mt-1">All time</p>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Earnings Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-3 gap-6">
+                  <div className="p-6 bg-muted/30 rounded-xl text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Gross Earnings</p>
+                    <p className="text-3xl font-bold">{formatCurrency(earningsData.totalEarnings)}</p>
+                    <p className="text-sm text-muted-foreground mt-1">All time</p>
+                  </div>
+                  <div className="p-6 bg-muted/30 rounded-xl text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Platform Fee (5%)</p>
+                    <p className="text-3xl font-bold text-red-500">-{formatCurrency(Math.round(earningsData.totalEarnings * 0.05))}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Service fee</p>
+                  </div>
+                  <div className="p-6 bg-primary/10 rounded-xl text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Net Earnings</p>
+                    <p className="text-3xl font-bold text-primary">{formatCurrency(Math.round(earningsData.totalEarnings * 0.95))}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Your earnings</p>
+                  </div>
                 </div>
-                <div className="p-6 bg-muted/30 rounded-xl text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Platform Fee (5%)</p>
-                  <p className="text-3xl font-bold text-red-500">-{formatCurrency(Math.round(earningsData.totalEarnings * 0.05))}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Service fee</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Earnings Breakdown</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={breakdownView === "destination" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setBreakdownView("destination")}
+                  >
+                    By Destination
+                  </Button>
+                  <Button
+                    variant={breakdownView === "trip" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setBreakdownView("trip")}
+                  >
+                    By Trip
+                  </Button>
                 </div>
-                <div className="p-6 bg-primary/10 rounded-xl text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Net Earnings</p>
-                  <p className="text-3xl font-bold text-primary">{formatCurrency(Math.round(earningsData.totalEarnings * 0.95))}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Your earnings</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                {breakdownView === "destination" ? (
+                  earningsByDestination.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No earnings by destination yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {earningsByDestination.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{item.destination}</p>
+                              <p className="text-xs text-muted-foreground">{item.bookings} booking{item.bookings !== 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-emerald-600">{formatCurrency(item.earnings)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {((item.earnings / (earningsData?.totalEarnings || 1)) * 100).toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  earningsByTrip.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No earnings by trip yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                      {earningsByTrip.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                              <Building2 className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{item.destination}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {item.bookings} booking{item.bookings !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-emerald-600">{formatCurrency(item.earnings)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </div>
