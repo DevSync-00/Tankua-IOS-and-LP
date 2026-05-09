@@ -274,7 +274,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* How It Works Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, styles.howItWorksSection]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>How It Works</Text>
           </View>
@@ -387,6 +387,9 @@ const styles = StyleSheet.create({
   section: {
     marginTop: SPACING.xl,
     marginBottom: SPACING.xl,
+  },
+  howItWorksSection: {
+    marginTop: -32,
   },
   sectionHeader: {
     flexDirection: 'row',

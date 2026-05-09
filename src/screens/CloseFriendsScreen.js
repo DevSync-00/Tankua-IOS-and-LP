@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,88 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../config/supabase';
 import ModernButton from '../components/ModernButton';
+import Loader from '../components/Loader';
 
 const CloseFriendsScreen = ({ navigation }) => {
-  const [friends, setFriends] = useState([
-    // Mock data - in real app, fetch from database
-    { id: '1', name: 'John Doe', phone: '0912345678', trips: 5 },
-    { id: '2', name: 'Jane Smith', phone: '0918765432', trips: 3 },
-  ]);
+  const { user } = useAuth();
+  const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [addingFriend, setAddingFriend] = useState(false);
+
+  useEffect(() => {
+    loadFriends();
+  }, [user]);
+
+  const loadFriends = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Get close friends with user details
+      const { data, error } = await supabase
+        .from('close_friends')
+        .select(`
+          id,
+          friend_user_id,
+          created_at,
+          users!close_friends_friend_user_id_fkey (
+            id,
+            name,
+            phone_number,
+            email
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Get trip counts for each friend
+      const friendsWithTrips = await Promise.all(
+        (data || []).map(async (friendship) => {
+          const friendUser = friendship.users;
+          if (!friendUser) return null;
+
+          // Count trips together (bookings on same trip)
+          const { count } = await supabase
+            .from('bookings')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', friendUser.id);
+
+          return {
+            id: friendship.id,
+            friendId: friendUser.id,
+            name: friendUser.name || 'Unknown',
+            phone: friendUser.phone_number || '',
+            email: friendUser.email || '',
+            trips: count || 0,
+          };
+        })
+      );
+
+      setFriends(friendsWithTrips.filter(Boolean));
+    } catch (error) {
+      console.error('Error loading friends:', error);
+      Alert.alert('Error', 'Failed to load friends');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   const filteredFriends = friends.filter(friend =>
     friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -27,33 +96,108 @@ const CloseFriendsScreen = ({ navigation }) => {
   );
 
   const handleAddFriend = () => {
-    Alert.alert(
+    Alert.prompt(
       'Add Friend',
       'Enter your friend\'s phone number to add them to your close friends list.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Add',
-          onPress: () => {
-            // In real app, add friend to database
-            Alert.alert('Success', 'Friend added successfully!');
+          onPress: async (phoneNumber) => {
+            if (!phoneNumber || !phoneNumber.trim()) {
+              Alert.alert('Error', 'Please enter a phone number');
+              return;
+            }
+
+            await addFriendByPhone(phoneNumber.trim());
           },
         },
-      ]
+      ],
+      'plain-text'
     );
   };
 
-  const handleRemoveFriend = (friendId) => {
+  const addFriendByPhone = async (phoneNumber) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please sign in to add friends');
+      return;
+    }
+
+    setAddingFriend(true);
+    try {
+      // Find user by phone number
+      const { data: friendUser, error: findError } = await supabase
+        .from('users')
+        .select('id, name, phone_number')
+        .eq('phone_number', phoneNumber)
+        .single();
+
+      if (findError || !friendUser) {
+        Alert.alert('Not Found', 'No user found with that phone number');
+        return;
+      }
+
+      if (friendUser.id === user.id) {
+        Alert.alert('Error', 'You cannot add yourself as a friend');
+        return;
+      }
+
+      // Check if already friends
+      const { data: existing } = await supabase
+        .from('close_friends')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('friend_user_id', friendUser.id)
+        .single();
+
+      if (existing) {
+        Alert.alert('Already Added', 'This user is already in your close friends list');
+        return;
+      }
+
+      // Add friend
+      const { error: addError } = await supabase
+        .from('close_friends')
+        .insert({
+          user_id: user.id,
+          friend_user_id: friendUser.id,
+        });
+
+      if (addError) throw addError;
+
+      Alert.alert('Success', `${friendUser.name || 'Friend'} added to your close friends!`);
+      await loadFriends();
+    } catch (error) {
+      console.error('Error adding friend:', error);
+      Alert.alert('Error', 'Failed to add friend. Please try again.');
+    } finally {
+      setAddingFriend(false);
+    }
+  };
+
+  const handleRemoveFriend = (friendshipId, friendName) => {
     Alert.alert(
       'Remove Friend',
-      'Are you sure you want to remove this friend?',
+      `Are you sure you want to remove ${friendName} from your close friends?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
-            setFriends(prev => prev.filter(f => f.id !== friendId));
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('close_friends')
+                .delete()
+                .eq('id', friendshipId);
+
+              if (error) throw error;
+
+              await loadFriends();
+            } catch (error) {
+              console.error('Error removing friend:', error);
+              Alert.alert('Error', 'Failed to remove friend');
+            }
           },
         },
       ]
@@ -84,10 +228,23 @@ const CloseFriendsScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      {loading ? (
+        <Loader />
+      ) : (
+        <ScrollView 
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadFriends();
+              }}
+              tintColor={COLORS.primary}
+            />
+          }
+        >
         {filteredFriends.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="people-outline" size={64} color={COLORS.grayLight} />
@@ -113,24 +270,26 @@ const CloseFriendsScreen = ({ navigation }) => {
               </View>
               <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => handleRemoveFriend(friend.id)}
+                onPress={() => handleRemoveFriend(friend.id, friend.name)}
               >
                 <Ionicons name="close-circle" size={24} color={COLORS.error} />
               </TouchableOpacity>
             </View>
           ))
         )}
-      </ScrollView>
+        </ScrollView>
+      )}
 
       <View style={styles.footer}>
         <ModernButton
-          title="Add Friend"
+          title={addingFriend ? "Adding..." : "Add Friend"}
           onPress={handleAddFriend}
           variant="primary"
           size="large"
           icon="person-add"
           iconPosition="left"
           style={styles.addButton}
+          disabled={addingFriend}
         />
       </View>
     </SafeAreaView>

@@ -37,7 +37,7 @@ const PickupStationCard = ({
             <Text style={styles.detailText}>{station.pickupTime}</Text>
           </View>
         )}
-        {showDistance && station.distance && (
+        {showDistance && typeof station.distance === 'number' && station.distance > 0 && (
           <View style={styles.detailItem}>
             <Ionicons name="navigate-outline" size={16} color={COLORS.gray} />
             <Text style={styles.detailText}>{station.distance} km</Text>

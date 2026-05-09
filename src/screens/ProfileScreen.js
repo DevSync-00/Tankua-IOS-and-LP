@@ -48,6 +48,12 @@ const ProfileScreen = ({ navigation }) => {
       onPress: () => navigation.navigate('Notifications'),
     },
     {
+      id: 'notificationSettings',
+      icon: 'settings-outline',
+      label: 'Notification Settings',
+      onPress: () => navigation.navigate('NotificationPreferences'),
+    },
+    {
       id: 'payment',
       icon: 'card-outline',
       label: 'Payment Methods',
@@ -82,6 +88,12 @@ const ProfileScreen = ({ navigation }) => {
       icon: 'people-outline',
       label: 'Close Friends',
       onPress: () => navigation.navigate('CloseFriends'),
+    },
+    {
+      id: 'saved',
+      icon: 'heart-outline',
+      label: 'Saved Destinations',
+      onPress: () => navigation.navigate('SavedDestinations'),
     },
     {
       id: 'logout',

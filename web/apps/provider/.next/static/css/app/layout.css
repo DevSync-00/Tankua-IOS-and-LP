@@ -977,6 +977,9 @@ video {
 .grid-cols-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.grid-cols-7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
 .flex-row {
   flex-direction: row;
 }
@@ -1142,6 +1145,9 @@ video {
 }
 .border-primary {
   border-color: hsl(var(--primary));
+}
+.border-primary\/20 {
+  border-color: hsl(var(--primary) / 0.2);
 }
 .border-red-200 {
   --tw-border-opacity: 1;
@@ -1326,6 +1332,9 @@ video {
 }
 .p-0 {
   padding: 0px;
+}
+.p-1 {
+  padding: 0.25rem;
 }
 .p-12 {
   padding: 3rem;
@@ -1709,6 +1718,11 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+.transition-shadow {
+  transition-property: box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
 .transition-transform {
   transition-property: transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -1918,6 +1932,11 @@ video {
 }
 .hover\:underline:hover {
   text-decoration-line: underline;
+}
+.hover\:shadow-md:hover {
+  --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 .hover\:shadow-xl:hover {
   --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
@@ -3033,6 +3052,9 @@ video {
 .grid-cols-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.grid-cols-7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
 .flex-row {
   flex-direction: row;
 }
@@ -3198,6 +3220,9 @@ video {
 }
 .border-primary {
   border-color: hsl(var(--primary));
+}
+.border-primary\/20 {
+  border-color: hsl(var(--primary) / 0.2);
 }
 .border-red-200 {
   --tw-border-opacity: 1;
@@ -3382,6 +3407,9 @@ video {
 }
 .p-0 {
   padding: 0px;
+}
+.p-1 {
+  padding: 0.25rem;
 }
 .p-12 {
   padding: 3rem;
@@ -3765,6 +3793,11 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+.transition-shadow {
+  transition-property: box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
 .transition-transform {
   transition-property: transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -3958,6 +3991,12 @@ video {
 
 .hover\:underline:hover {
   text-decoration-line: underline;
+}
+
+.hover\:shadow-md:hover {
+  --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
 .hover\:shadow-xl:hover {

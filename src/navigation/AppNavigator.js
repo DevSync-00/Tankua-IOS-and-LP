@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import Loader from '../components/Loader';
 import { COLORS } from '../config/theme';
 
 // Auth Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
-import LoginScreen from '../screens/LoginScreen';
+import SignInScreen from '../screens/SignInScreen';
+import OTPScreen from '../screens/OTPScreen';
 
 // Main Screens
 import MainTabNavigator from './MainTabNavigator';
@@ -19,6 +21,7 @@ import TicketScreen from '../screens/TicketScreen';
 // Profile Screens
 import MyAccountScreen from '../screens/MyAccountScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import NotificationPreferencesScreen from '../screens/NotificationPreferencesScreen';
 import HelpCenterScreen from '../screens/HelpCenterScreen';
 import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
 import CouponsScreen from '../screens/CouponsScreen';
@@ -26,6 +29,7 @@ import RewardsScreen from '../screens/RewardsScreen';
 import ReferFriendScreen from '../screens/ReferFriendScreen';
 import SuggestRouteScreen from '../screens/SuggestRouteScreen';
 import CloseFriendsScreen from '../screens/CloseFriendsScreen';
+import SavedDestinationsScreen from '../screens/SavedDestinationsScreen';
 import ReviewScreen from '../screens/ReviewScreen';
 
 // Admin Screens
@@ -35,9 +39,26 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const { user, loading } = useAuth();
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
-  if (loading) {
-    // Show loading screen while checking authentication
+  useEffect(() => {
+    const loadOnboardingFlag = async () => {
+      try {
+        const value = await AsyncStorage.getItem('has_seen_onboarding');
+        setHasSeenOnboarding(value === 'true');
+      } catch (error) {
+        console.log('Error loading onboarding flag:', error);
+      } finally {
+        setOnboardingChecked(true);
+      }
+    };
+
+    loadOnboardingFlag();
+  }, []);
+
+  if (loading || !onboardingChecked) {
+    // Show loading screen while checking authentication and onboarding flag
     return (
       <View style={styles.loadingContainer}>
         <Loader size="large" />
@@ -47,10 +68,17 @@ const AppNavigator = () => {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!user ? (
+      {/* First app launch: always show onboarding */}
+      {!hasSeenOnboarding ? (
         <>
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="SignIn" component={SignInScreen} />
+          <Stack.Screen name="OTP" component={OTPScreen} />
+        </>
+      ) : !user ? (
+        <>
+          <Stack.Screen name="SignIn" component={SignInScreen} />
+          <Stack.Screen name="OTP" component={OTPScreen} />
         </>
       ) : (
         <>
@@ -86,6 +114,11 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
           <Stack.Screen 
+            name="NotificationPreferences" 
+            component={NotificationPreferencesScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
             name="HelpCenter" 
             component={HelpCenterScreen}
             options={{ headerShown: false }}
@@ -118,6 +151,11 @@ const AppNavigator = () => {
           <Stack.Screen 
             name="CloseFriends" 
             component={CloseFriendsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="SavedDestinations" 
+            component={SavedDestinationsScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen 

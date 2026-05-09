@@ -75,7 +75,7 @@ const DestinationCard = ({ destination, onPress, variant = 'list' }) => {
             <Ionicons name="location-outline" size={16} color={COLORS.gray} />
             <Text style={styles.listLocation}>{destination.city || 'Unknown'}</Text>
           </View>
-          {destination.distance && (
+          {typeof destination.distance === 'number' && destination.distance > 0 && (
             <Text style={styles.distance}>{destination.distance} km</Text>
           )}
         </View>

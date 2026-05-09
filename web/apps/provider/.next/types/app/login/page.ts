@@ -1,4 +1,4 @@
-// File: C:\Users\Bereket\tankua\web\apps\provider\src\app\login\page.tsx
+// File: C:\Windows.old.000\Users\Bereket\tankua\web\apps\provider\src\app\login\page.tsx
 import * as entry from '../../../../src/app/login/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -15,6 +15,8 @@ import {
   Eye,
   RefreshCw,
   Copy,
+  Grid3x3,
+  List,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Card, CardContent, Button, Badge, formatCurrency } from "@tankua/ui";
@@ -26,6 +28,8 @@ export default function TripsPage() {
   const [trips, setTrips] = useState<TripDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingTripId, setDeletingTripId] = useState<string | null>(null);
@@ -79,9 +83,30 @@ export default function TripsPage() {
         trip.destination?.name || "Destination";
       const matchesSearch = destinationName.toLowerCase().includes(query);
       const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesDate = !selectedDate || trip.departure_date?.startsWith(selectedDate);
+      return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [trips, searchQuery, statusFilter]);
+  }, [trips, searchQuery, statusFilter, selectedDate]);
+
+  // Group trips by date for calendar view
+  const tripsByDate = useMemo(() => {
+    const grouped: { [key: string]: TripDetails[] } = {};
+    filteredTrips.forEach(trip => {
+      if (trip.departure_date) {
+        const dateKey = trip.departure_date.split('T')[0];
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(trip);
+      }
+    });
+    return grouped;
+  }, [filteredTrips]);
+
+  // Get dates with trips for calendar
+  const datesWithTrips = useMemo(() => {
+    return Object.keys(tripsByDate);
+  }, [tripsByDate]);
 
   const stats = useMemo(() => {
     const totalSeats = trips.reduce((sum, t) => sum + (t.max_seats || 0), 0);
@@ -175,6 +200,24 @@ export default function TripsPage() {
         }
         actions={
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="h-8"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "calendar" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("calendar")}
+                className="h-8"
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -283,7 +326,141 @@ export default function TripsPage() {
           </Card>
         )}
 
+        {/* Calendar View */}
+        {viewMode === "calendar" && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <input
+                  type="date"
+                  value={selectedDate || ""}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value || null);
+                  }}
+                  className="h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                {selectedDate && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDate(null)}
+                    className="ml-2"
+                  >
+                    Clear Date Filter
+                  </Button>
+                )}
+              </div>
+              
+              {selectedDate ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">
+                    Trips on {new Date(selectedDate).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </h3>
+                  {tripsByDate[selectedDate]?.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {tripsByDate[selectedDate].map((trip) => {
+                        const destinationName = trip.destination?.name || "Destination";
+                        const { date, time } = formatDateTime(trip.departure_date);
+                        const capacity = trip.max_seats || 0;
+                        const booked = Math.max(0, capacity - (trip.available_seats || 0));
+                        
+                        return (
+                          <Card key={trip.id} className="p-4 hover:shadow-md transition-shadow">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{destinationName}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{time}</p>
+                              </div>
+                              {getStatusBadge(trip.status)}
+                            </div>
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">{booked}/{capacity}</span>
+                              </div>
+                              <p className="font-semibold text-sm">{formatCurrency(trip.price)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 mt-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(trip.id)}
+                                className="flex-1"
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(`/dashboard/trips/${trip.id}`)}
+                                className="flex-1"
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </Button>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No trips scheduled for this date</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-7 gap-2 mb-4">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Select a date to view trips</p>
+                    <p className="text-sm mt-2">Or use the date filter above to see trips for a specific date</p>
+                  </div>
+                  {datesWithTrips.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold mb-3">Upcoming Trip Dates</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {datesWithTrips.slice(0, 10).map(date => (
+                          <Button
+                            key={date}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedDate(date)}
+                          >
+                            {new Date(date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                            <span className="ml-2 text-xs">
+                              ({tripsByDate[date].length})
+                            </span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Trips Table */}
+        {viewMode === "list" && (
         <Card>
           <CardContent className="p-0">
             {/* Mobile Card View */}
@@ -466,6 +643,7 @@ export default function TripsPage() {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

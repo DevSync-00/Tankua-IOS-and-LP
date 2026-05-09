@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const DEFAULT_COUNTRY_CODE = '+251';
 
   useEffect(() => {
     checkUser();
@@ -52,6 +53,8 @@ export const AuthProvider = ({ children }) => {
           const userWithLocation = {
             ...userData,
             location: userData.location || '',
+            saved_destinations: userData.saved_destinations || userData.saved_churches || [],
+            saved_stations: userData.saved_stations || [],
           };
           setUser(userWithLocation);
           setIsAdmin(userData.is_admin || false);
@@ -98,40 +101,109 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const applyUserState = async (data) => {
+    const userData = {
+      ...data,
+      name: data.name || '',
+      phone_number: data.phone_number || '',
+      emergency_contact: data.emergency_contact || '',
+      location: data.location || '',
+      saved_destinations: data.saved_destinations || data.saved_churches || [],
+      saved_stations: data.saved_stations || [],
+    };
+
+    setUser(userData);
+    setIsAdmin(data.is_admin || false);
+    await AsyncStorage.setItem('user', JSON.stringify(userData));
+    return userData;
+  };
+
+  const createUserProfile = async (userId, phoneNumber = '') => {
+    const newUser = {
+      id: userId,
+      phone_number: phoneNumber,
+      name: '',
+      email: '',
+      emergency_contact: '',
+      location: '',
+      saved_destinations: [],
+      saved_stations: [],
+      is_admin: false,
+    };
+
+    const { data, error } = await supabase
+      .from('users')
+      .upsert([newUser], { onConflict: 'id' })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return applyUserState(data);
+  };
+
   const loadUserProfile = async (userId) => {
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      if (data) {
-        // Ensure all required fields exist (for backward compatibility)
-        const userData = {
-          ...data,
-          name: data.name || '',
-          phone_number: data.phone_number || '',
-          emergency_contact: data.emergency_contact || '',
-          location: data.location || '',
-        };
-        setUser(userData);
-        setIsAdmin(data.is_admin || false);
-        await AsyncStorage.setItem('user', JSON.stringify(userData));
+      if (!data) {
+        const { data: authData } = await supabase.auth.getUser();
+        await createUserProfile(userId, authData?.user?.phone || '');
+        return;
       }
+
+      await applyUserState(data);
     } catch (error) {
       console.log('Error loading user profile:', error);
     }
   };
 
+  const normalizePhoneNumber = (phoneNumber) => {
+    const rawInput = (phoneNumber || '').trim();
+    if (!rawInput) {
+      throw new Error('Please enter a valid phone number');
+    }
+
+    const cleaned = rawInput.replace(/[^\d+]/g, '');
+    let normalized = cleaned;
+
+    if (cleaned.startsWith('00')) {
+      normalized = `+${cleaned.slice(2)}`;
+    } else if (!cleaned.startsWith('+')) {
+      if (/^0\d{9}$/.test(cleaned)) {
+        normalized = `${DEFAULT_COUNTRY_CODE}${cleaned.slice(1)}`;
+      } else if (/^\d{9}$/.test(cleaned)) {
+        normalized = `${DEFAULT_COUNTRY_CODE}${cleaned}`;
+      } else {
+        normalized = `+${cleaned}`;
+      }
+    }
+
+    if (!/^\+[1-9]\d{7,14}$/.test(normalized)) {
+      throw new Error('Use a valid phone number format like 09XXXXXXXX or +2519XXXXXXXX');
+    }
+
+    return normalized;
+  };
+
+  const getOtpErrorMessage = (error) => {
+    const providerMessage = error?.message || 'Unable to send OTP right now. Please try again.';
+
+    if (providerMessage.includes('20003') || providerMessage.toLowerCase().includes('authenticate')) {
+      return 'SMS provider authentication failed. Update Twilio credentials in Supabase Auth > Phone settings.';
+    }
+
+    return providerMessage;
+  };
+
   const sendOTP = async (phoneNumber) => {
     try {
-      // Format phone number (remove spaces, ensure + prefix)
-      const formattedPhone = phoneNumber.trim().startsWith('+') 
-        ? phoneNumber.trim() 
-        : `+${phoneNumber.trim()}`;
+      const formattedPhone = normalizePhoneNumber(phoneNumber);
 
       const { error } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
@@ -141,15 +213,13 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, phoneNumber: formattedPhone };
     } catch (error) {
-      throw error;
+      throw new Error(getOtpErrorMessage(error));
     }
   };
 
   const verifyOTP = async (phoneNumber, token) => {
     try {
-      const formattedPhone = phoneNumber.trim().startsWith('+') 
-        ? phoneNumber.trim() 
-        : `+${phoneNumber.trim()}`;
+      const formattedPhone = normalizePhoneNumber(phoneNumber);
 
       const { data, error } = await supabase.auth.verifyOtp({
         phone: formattedPhone,
@@ -161,45 +231,24 @@ export const AuthProvider = ({ children }) => {
 
       if (data.user) {
         // Check if user profile exists
-        const { data: existingUser } = await supabase
+        const { data: existingUser, error: existingUserError } = await supabase
           .from('users')
           .select('*')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
+
+        if (existingUserError) throw existingUserError;
 
         if (!existingUser) {
-          // Create user profile
-          const newUser = {
-            id: data.user.id,
-            phone_number: formattedPhone,
-            name: '',
-            email: '',
-            emergency_contact: '',
-            location: '',
-            saved_churches: [],
-            saved_stations: [],
-            is_admin: false,
-            created_at: new Date().toISOString(),
-          };
-
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert([newUser]);
-
-          if (insertError) throw insertError;
-
-          setUser(newUser);
-          await AsyncStorage.setItem('user', JSON.stringify(newUser));
+          await createUserProfile(data.user.id, formattedPhone);
         } else {
-          setUser(existingUser);
-          setIsAdmin(existingUser.is_admin || false);
-          await AsyncStorage.setItem('user', JSON.stringify(existingUser));
+          await applyUserState(existingUser);
         }
       }
 
       return data.user;
     } catch (error) {
-      throw error;
+      throw new Error(getOtpErrorMessage(error));
     }
   };
 

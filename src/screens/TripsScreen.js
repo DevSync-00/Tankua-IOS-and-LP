@@ -57,11 +57,6 @@ const TripsScreen = ({ navigation }) => {
     navigation.navigate('Ticket', { booking });
   };
 
-  const handleRateTrip = (booking) => {
-    // Check if review already exists
-    navigation.navigate('Review', { booking });
-  };
-
   const renderTab = (tab, label, isLast = false) => {
     const isActive = activeTab === tab;
     return (
@@ -143,25 +138,14 @@ const TripsScreen = ({ navigation }) => {
               <Text style={styles.priceLabel}>Total:</Text>
             <Text style={[styles.priceValue, { marginLeft: SPACING.xs }]}>{totalPrice} ETB</Text>
             </View>
-            {status === 'completed' ? (
-              <TouchableOpacity 
-                style={[styles.ticketButton, styles.rateButton]}
-                onPress={() => handleRateTrip(item)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="star-outline" size={20} color={COLORS.primary} />
-                <Text style={[styles.ticketButtonText, { marginLeft: SPACING.xs, color: COLORS.primary }]}>Rate Trip</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.ticketButton}
-                onPress={() => handleViewTicket(item)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="qr-code-outline" size={20} color={COLORS.iconPrimary} />
-                <Text style={[styles.ticketButtonText, { marginLeft: SPACING.xs }]}>View Ticket</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={styles.ticketButton}
+              onPress={() => handleViewTicket(item)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="qr-code-outline" size={20} color={COLORS.iconPrimary} />
+            <Text style={[styles.ticketButtonText, { marginLeft: SPACING.xs }]}>View Ticket</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -430,11 +414,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.black,
     color: COLORS.iconPrimary,
-  },
-  rateButton: {
-    backgroundColor: `${COLORS.primary}15`,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
   },
   emptyState: {
     flex: 1,

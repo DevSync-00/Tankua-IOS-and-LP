@@ -82,7 +82,7 @@ const EnhancedDestinationCard = ({
     } else if (size === 'small') {
       return {
         width: (availableWidth - SPACING.md) / 2,
-        height: 280, // Fixed height for standard grid
+        height: 230, // Fixed height for standard grid
         imageHeight: 200, // Fixed image height
       };
     } else {
@@ -192,7 +192,7 @@ const EnhancedDestinationCard = ({
         </View>
 
         {/* Price Badge */}
-        {price && (
+        {typeof price === 'number' && price > 0 && (
           <View style={styles.priceBadge}>
             <Text style={styles.priceLabel}>From</Text>
             <Text style={styles.priceValue}>ETB {price}</Text>

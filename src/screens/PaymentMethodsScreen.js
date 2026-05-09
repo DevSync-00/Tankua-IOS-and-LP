@@ -24,7 +24,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
     type: 'mobile_money',
-    provider: 'telebirr',
+    provider: 'chapa',
     name: '',
     account_number: '',
   });
@@ -62,7 +62,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
   const handleAddMethod = () => {
     setFormData({
       type: 'mobile_money',
-      provider: 'telebirr',
+      provider: 'chapa',
       name: '',
       account_number: '',
     });
@@ -291,7 +291,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
                   style={styles.input}
                   value={formData.name}
                   onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  placeholder="e.g., My Telebirr"
+                  placeholder="e.g., My Chapa"
                   placeholderTextColor={COLORS.grayLight}
                 />
               </View>
@@ -325,7 +325,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Provider *</Text>
                   <View style={styles.typeButtons}>
-                    {['telebirr', 'chapa', 'm_pesa'].map((provider) => (
+                    {['chapa'].map((provider) => (
                       <TouchableOpacity
                         key={provider}
                         style={[

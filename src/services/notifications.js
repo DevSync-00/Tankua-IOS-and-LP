@@ -5,6 +5,7 @@
 
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,62 +28,62 @@ Notifications.setNotificationHandler({
 // ============================================
 
 /**
- * Register for push notifications and get the token
+ * Register for push notifications and get the token.
+ * In Expo Go, push is not supported (SDK 53+); we skip and return null without error.
+ * Otherwise we require a projectId (from .env or app.json extra.eas.projectId).
  */
 export async function registerForPushNotifications() {
   let token = null;
-  
+
   if (!Device.isDevice) {
-    console.log('Push notifications require a physical device');
+    return null;
+  }
+
+  // Push notifications are not supported in Expo Go (SDK 53+). Skip without logging.
+  const appOwnership = Constants.appOwnership ?? Constants.expoConfig?.owner ?? null;
+  const isExpoGo = appOwnership === 'expo';
+  if (isExpoGo) {
     return null;
   }
 
   try {
-    // Check existing permission
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
-    // Request permission if not granted
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Push notification permission not granted');
       return null;
     }
 
-    // Get project ID from environment variable
-    // Expo SDK 50+ can often infer projectId from app.json, but if not available,
-    // you can set EXPO_PUBLIC_PROJECT_ID in your .env file
-    const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
+    // Project ID is required for getExpoPushTokenAsync. Resolve from env or app config.
+    let projectId = process.env.EXPO_PUBLIC_PROJECT_ID?.trim?.() || process.env.EXPO_PUBLIC_PROJECT_ID;
+    if (!projectId && Constants.expoConfig) {
+      projectId = Constants.expoConfig.extra?.eas?.projectId ||
+                  Constants.expoConfig.extra?.projectId ||
+                  Constants.expoConfig.projectId;
+    }
+    if (!projectId && Constants.manifest2) {
+      projectId = Constants.manifest2?.extra?.eas?.projectId ||
+                  Constants.manifest2?.extra?.projectId;
+    }
+    if (!projectId && Constants.manifest) {
+      projectId = Constants.manifest?.extra?.eas?.projectId ||
+                  Constants.manifest?.extra?.projectId;
+    }
 
-    // Get push token
-    // If projectId is not provided, Expo will try to infer it from app.json
-    // If that fails, you'll need to set EXPO_PUBLIC_PROJECT_ID in your .env file
-    let tokenData;
-    try {
-      if (projectId) {
-        tokenData = await Notifications.getExpoPushTokenAsync({
-          projectId: projectId,
-        });
-      } else {
-        // Try without projectId - Expo SDK 50+ can often infer it from app.json
-        tokenData = await Notifications.getExpoPushTokenAsync();
-      }
-      token = tokenData.data;
-    } catch (error) {
-      console.error('Error getting push token:', error);
-      // If error is about projectId, provide helpful message
-      if (error.message?.includes('projectId')) {
-        console.warn(
-          'Push notifications require a projectId. ' +
-          'To fix this, either:\n' +
-          '1. Add EXPO_PUBLIC_PROJECT_ID to your .env file, or\n' +
-          '2. Run "npx expo install expo-constants" and ensure your app.json has the projectId configured'
-        );
-      }
+    if (!projectId || String(projectId).trim() === '') {
+      return null;
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: String(projectId).trim(),
+    });
+    token = tokenData?.data ?? null;
+    if (!token) {
       return null;
     }
 

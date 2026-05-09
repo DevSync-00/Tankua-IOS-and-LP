@@ -94,21 +94,21 @@ const ReviewCard = ({
       {comment && <Text style={styles.comment}>{comment}</Text>}
 
       {/* Detailed Ratings */}
-      {(vehicle_rating || driver_rating || punctuality_rating) && (
+      {(vehicle_rating > 0 || driver_rating > 0 || punctuality_rating > 0) && (
         <View style={styles.detailedRatings}>
-          {vehicle_rating && (
+          {vehicle_rating > 0 && (
             <View style={styles.detailedRating}>
               <Text style={styles.detailedLabel}>Vehicle</Text>
               {renderStars(vehicle_rating)}
             </View>
           )}
-          {driver_rating && (
+          {driver_rating > 0 && (
             <View style={styles.detailedRating}>
               <Text style={styles.detailedLabel}>Driver</Text>
               {renderStars(driver_rating)}
             </View>
           )}
-          {punctuality_rating && (
+          {punctuality_rating > 0 && (
             <View style={styles.detailedRating}>
               <Text style={styles.detailedLabel}>Punctuality</Text>
               {renderStars(punctuality_rating)}

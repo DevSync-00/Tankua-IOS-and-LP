@@ -6,23 +6,62 @@ import {
   useWindowDimensions, 
   FlatList,
   TouchableOpacity,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
-  withTiming,
   interpolate,
   Extrapolate,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, ANIMATIONS } from '../config/theme';
-import { useLanguage } from '../contexts/LanguageContext';
-import ModernButton from '../components/ModernButton';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
+
+const OnboardingSlideItem = ({ item, index, width, height, scrollX }) => {
+  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+  
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolate.CLAMP);
+    return { opacity };
+  });
+
+  return (
+    <View style={[styles.slide, { width }]}>
+      {/* Image Section */}
+      <View style={styles.imageWrapper}>
+        <Image source={item.image} style={styles.image} resizeMode="cover" />
+      </View>
+
+      {/* Text Content Section */}
+      <Animated.View style={[styles.contentContainer, contentAnimatedStyle]}>
+        <Text style={styles.title}>{item.title}</Text>
+        <View style={styles.highlightWrapper}>
+          <Text style={styles.titleHighlight}>{item.titleHighlight}</Text>
+          {/* Curved Underline SVG or Image would go here, using a View for now */}
+          <View style={styles.curvedUnderline} />
+        </View>
+        <Text style={styles.description}>{item.description}</Text>
+      </Animated.View>
+    </View>
+  );
+};
+
+const AnimatedDot = ({ index, scrollX, width }) => {
+  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+  const dotAnimatedStyle = useAnimatedStyle(() => {
+    const dotWidth = interpolate(scrollX.value, inputRange, [8, 24, 8], Extrapolate.CLAMP);
+    const opacity = interpolate(scrollX.value, inputRange, [0.3, 1, 0.3], Extrapolate.CLAMP);
+    const backgroundColor = interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolate.CLAMP) 
+      ? COLORS.primary : '#D1E3F8'; // Light blue for inactive
+
+    return { width: dotWidth, opacity };
+  });
+  return <Animated.View style={[styles.dot, dotAnimatedStyle]} />;
+};
 
 const OnboardingScreen = ({ navigation }) => {
-  const { width, height } = useWindowDimensions();
-  const { t } = useLanguage();
+  const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
   const scrollX = useSharedValue(0);
@@ -30,242 +69,160 @@ const OnboardingScreen = ({ navigation }) => {
   const slides = [
     {
       id: '1',
-      title: t('onboarding1Title') || 'Discover Amazing Places',
-      description: t('onboarding1Desc') || 'Explore Ethiopia\'s most beautiful destinations and attractions with ease.',
-      icon: 'location',
-      emoji: '📍',
-      color: COLORS.primary,
+      title: 'Discover fascinating',
+      titleHighlight: 'destinations',
+      description: "Explore Ethiopia's biggest and most loved tourist attractions through our easy-to-use search and discover features.",
+      image: require('../../assets/beautiful-shot-building-near-forested-mountains.jpg'),
     },
-    {
-      id: '2',
-      title: t('onboarding2Title') || 'Book Your Journey',
-      description: t('onboarding2Desc') || 'Simple booking process with multiple pickup stations and flexible dates.',
-      icon: 'calendar',
-      emoji: '📅',
-      color: COLORS.secondary,
-    },
-    {
-      id: '3',
-      title: t('onboarding3Title') || 'Travel in Peace',
-      description: t('onboarding3Desc') || 'Join thousands of travelers on safe and comfortable trips.',
-      icon: 'heart',
-      emoji: '✨',
-      color: COLORS.primary,
-    },
+    // ... other slides
   ];
 
-  const handleNext = () => {
-    if (currentIndex < slides.length - 1) {
-      const nextIndex = currentIndex + 1;
-      flatListRef.current?.scrollToIndex({
-        index: nextIndex,
-        animated: true,
-      });
-      setCurrentIndex(nextIndex);
-    } else {
-      navigation.replace('Login');
-    }
-  };
-
-  const handleSkip = () => {
-    navigation.replace('Login');
-  };
-
-  const renderSlide = ({ item, index }) => {
-    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-    
-    const animatedStyle = useAnimatedStyle(() => {
-      const scale = interpolate(
-        scrollX.value,
-        inputRange,
-        [0.8, 1, 0.8],
-        Extrapolate.CLAMP
-      );
-      
-      const opacity = interpolate(
-        scrollX.value,
-        inputRange,
-        [0.5, 1, 0.5],
-        Extrapolate.CLAMP
-      );
-      
-      const translateY = interpolate(
-        scrollX.value,
-        inputRange,
-        [50, 0, 50],
-        Extrapolate.CLAMP
-      );
-      
-      return {
-        transform: [
-          { scale },
-          { translateY },
-        ],
-        opacity,
-      };
-    });
-
-    return (
-      <Animated.View style={[styles.slide, { width }, animatedStyle]}>
-        <Animated.View 
-          style={[
-            styles.iconContainer,
-            { backgroundColor: `${item.color}15` }
-          ]}
-        >
-          <Text style={styles.emoji}>{item.emoji}</Text>
-        </Animated.View>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
-      </Animated.View>
-    );
-  };
-
-  const renderDots = () => {
-    return (
-      <View style={styles.dotsContainer}>
-        {slides.map((_, index) => {
-          const dotAnimatedStyle = useAnimatedStyle(() => {
-            const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-            const widthValue = interpolate(
-              scrollX.value,
-              inputRange,
-              [8, 24, 8],
-              Extrapolate.CLAMP
-            );
-            const opacityValue = interpolate(
-              scrollX.value,
-              inputRange,
-              [0.3, 1, 0.3],
-              Extrapolate.CLAMP
-            );
-            
-            return {
-              width: widthValue,
-              opacity: opacityValue,
-            };
-          });
-
-          return (
-            <Animated.View
-              key={index}
-              style={[
-                styles.dot,
-                { backgroundColor: COLORS.primary },
-                dotAnimatedStyle,
-              ]}
-            />
-          );
-        })}
-      </View>
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>{t('skip') || 'Skip'}</Text>
-      </TouchableOpacity>
-
+    <SafeAreaView style={styles.container}>
       <FlatList
         ref={flatListRef}
         data={slides}
-        renderItem={renderSlide}
+        renderItem={({ item, index }) => (
+          <OnboardingSlideItem 
+            item={item} 
+            index={index} 
+            width={width} 
+            scrollX={scrollX} 
+          />
+        )}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={(event) => {
-          scrollX.value = event.nativeEvent.contentOffset.x;
-          const index = Math.round(event.nativeEvent.contentOffset.x / width);
-          setCurrentIndex(index);
+        onScroll={(e) => {
+          scrollX.value = e.nativeEvent.contentOffset.x;
+          setCurrentIndex(Math.round(e.nativeEvent.contentOffset.x / width));
         }}
         scrollEventThrottle={16}
       />
 
-      {renderDots()}
+      {/* Fixed Bottom UI */}
+      <View style={styles.bottomSection}>
+        <View style={styles.dotsContainer}>
+          {slides.map((_, i) => (
+            <AnimatedDot key={i} index={i} scrollX={scrollX} width={width} />
+          ))}
+        </View>
 
-      <View style={styles.buttonContainer}>
-        <ModernButton
-          title={currentIndex === slides.length - 1 ? (t('getStarted') || 'Get Started') : (t('next') || 'Next')}
-          onPress={handleNext}
-          variant="primary"
-          size="large"
-          style={styles.button}
-          icon={currentIndex === slides.length - 1 ? 'arrow-forward' : 'chevron-forward'}
-          iconPosition="right"
-        />
+        <TouchableOpacity 
+          style={styles.getStartedButton} 
+          onPress={async () => {
+            try {
+              await AsyncStorage.setItem('has_seen_onboarding', 'true');
+            } catch (error) {
+              console.log('Error saving onboarding flag:', error);
+            }
+            navigation.replace('SignIn');
+          }}
+        >
+          <Text style={styles.buttonText}>Get Started</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  skipButton: {
-    position: 'absolute',
-    top: 50,
-    right: SPACING.md,
-    zIndex: 10,
-    padding: SPACING.sm,
-  },
-  skipText: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.gray,
-    fontWeight: '600',
+    backgroundColor: '#FFF',
   },
   slide: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
+    padding: SPACING.md,
   },
-  iconContainer: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.xl,
+  imageWrapper: {
+    height: '55%',
+    width: '100%',
+    borderRadius: 40,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  emoji: {
-    fontSize: 80,
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  skipText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  contentContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: FONTS.sizes.xxxl,
+    fontSize: 32,
+    fontFamily: 'serif', // Use a serif font for that "fascinating" look
     fontWeight: '800',
-    color: COLORS.secondary,
+    color: '#1A1A1A',
     textAlign: 'center',
-    marginBottom: SPACING.md,
-    letterSpacing: -1,
+  },
+  highlightWrapper: {
+    alignItems: 'center',
+  },
+  titleHighlight: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFB800', // The yellow from your image
+    textAlign: 'center',
+  },
+  curvedUnderline: {
+    height: 4,
+    width: 140,
+    backgroundColor: '#FFB800',
+    borderRadius: 2,
+    marginTop: -2,
+    // For a real curve, use an Image or SVG here
   },
   description: {
-    fontSize: FONTS.sizes.lg,
-    color: COLORS.gray,
+    fontSize: 16,
+    color: '#7D7D7D',
     textAlign: 'center',
-    lineHeight: 26,
-    paddingHorizontal: SPACING.lg,
-    fontWeight: '400',
+    marginTop: 20,
+    lineHeight: 24,
+  },
+  bottomSection: {
+    paddingHorizontal: 30,
+    paddingBottom: 40,
+    alignItems: 'center',
   },
   dotsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: SPACING.xl,
-    gap: SPACING.sm,
+    marginBottom: 30,
   },
   dot: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFB800',
+    marginHorizontal: 4,
   },
-  buttonContainer: {
-    paddingHorizontal: SPACING.xl,
-    paddingBottom: SPACING.xl,
-  },
-  button: {
+  getStartedButton: {
+    backgroundColor: '#FFB800',
     width: '100%',
+    paddingVertical: 18,
+    borderRadius: 18,
+    alignItems: 'center',
+    ...SHADOWS.medium,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
 

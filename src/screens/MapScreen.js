@@ -684,7 +684,7 @@ const MapScreen = ({ navigation }) => {
 
                 {/* Info Row */}
                 <View style={styles.cardInfoRow}>
-                  {selectedDestination.rating && (
+                  {typeof selectedDestination.rating === 'number' && selectedDestination.rating > 0 && (
                     <View style={styles.cardInfoItem}>
                       <Ionicons name="star" size={16} color={COLORS.primary} />
                       <Text style={styles.cardInfoText}>

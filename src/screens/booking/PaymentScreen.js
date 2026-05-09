@@ -34,25 +34,30 @@ const PaymentScreen = ({ navigation, route }) => {
   const [bookingExpired, setBookingExpired] = useState(false);
   const intervalRef = useRef(null);
 
+  const getReadableErrorMessage = (error, fallback) => {
+    if (!error) return fallback;
+
+    if (typeof error === 'string' && error.trim()) {
+      return error;
+    }
+
+    if (typeof error?.message === 'string' && error.message.trim()) {
+      return error.message;
+    }
+
+    const gatewayData = error?.response?.data;
+    if (typeof gatewayData?.message === 'string' && gatewayData.message.trim()) {
+      return gatewayData.message;
+    }
+
+    if (typeof gatewayData?.error === 'string' && gatewayData.error.trim()) {
+      return gatewayData.error;
+    }
+
+    return fallback;
+  };
+
   const paymentMethods = [
-    {
-      id: 'telebirr',
-      name: t('telebirr'),
-      icon: '📱',
-      description: 'Pay with Telebirr',
-    },
-    {
-      id: 'cbe',
-      name: t('cbeBirr'),
-      icon: '🏦',
-      description: 'Pay with CBE Birr',
-    },
-    {
-      id: 'amole',
-      name: t('amole'),
-      icon: '💳',
-      description: 'Pay with Amole',
-    },
     {
       id: 'chapa',
       name: t('chapa'),
@@ -191,11 +196,11 @@ const PaymentScreen = ({ navigation, route }) => {
       return;
     }
 
-    // Only support Chapa and Telebirr for now
-    if (selectedMethod !== 'chapa' && selectedMethod !== 'telebirr') {
+    // Chapa is the only supported gateway currently
+    if (selectedMethod !== 'chapa') {
       Alert.alert(
         'Coming Soon',
-        `${selectedMethod === 'cbe' ? 'CBE Birr' : 'Amole'} integration is coming soon. Please use Chapa or Telebirr.`
+        'Only Chapa payments are currently supported.'
       );
       return;
     }
@@ -324,36 +329,6 @@ const PaymentScreen = ({ navigation, route }) => {
           } else {
             throw new Error('Cannot open payment URL');
           }
-        } else if (selectedMethod === 'telebirr') {
-          // Telebirr might return a QR code or payment URL
-          if (paymentResult.paymentUrl) {
-            const canOpen = await Linking.canOpenURL(paymentResult.paymentUrl);
-            if (canOpen) {
-              await Linking.openURL(paymentResult.paymentUrl);
-            }
-          }
-          
-          // Show QR code if available or instructions
-          Alert.alert(
-            'Telebirr Payment',
-            paymentResult.qrCode 
-              ? 'Scan the QR code with your Telebirr app to complete payment'
-              : 'Please complete the payment using your Telebirr app. We will verify your payment shortly.',
-            [
-              {
-                text: 'I\'ve Completed Payment',
-                onPress: () => verifyPaymentStatus(paymentResult.transactionRef, bookingId),
-              },
-              {
-                text: 'Cancel',
-                style: 'cancel',
-                onPress: () => {
-                  setLoading(false);
-                  setPaymentProcessing(false);
-                },
-              },
-            ]
-          );
         }
       } else {
         throw new Error(paymentResult.message || 'Failed to initiate payment');
@@ -361,7 +336,10 @@ const PaymentScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Payment error:', error);
       
-      let errorMessage = error.message || 'Failed to process payment. Please try again.';
+      let errorMessage = getReadableErrorMessage(
+        error,
+        'Failed to process payment. Please try again.'
+      );
       
       // Provide helpful messages for common errors
       if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
