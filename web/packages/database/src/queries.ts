@@ -58,7 +58,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   ]);
 
   // Calculate total revenue
-  const totalRevenue = revenueResult.data?.reduce((sum, b) => sum + (b.total_price || 0), 0) || 0;
+  const revenueRows = (revenueResult.data || []) as Array<{ total_price: number | null }>;
+  const totalRevenue = revenueRows.reduce((sum, b) => sum + (b.total_price || 0), 0);
 
   return {
     totalUsers: usersResult.count || 0,
@@ -68,6 +69,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalRevenue,
     recentBookings: (recentBookingsResult.data || []) as unknown as BookingWithDetails[],
     topProviders: [],
+    topDestinations: [],
     topChurches: [],
   };
 }

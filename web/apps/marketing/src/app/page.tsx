@@ -220,7 +220,7 @@ export default function HomePage() {
               <Link href="/tours" className="text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52] transition-colors">
                 Explore Tours
               </Link>
-              <Link href="/providers" className="text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52] transition-colors">
+              <Link href="/provider-portal" className="text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52] transition-colors">
                 For Providers
               </Link>
               <Link href="/about" className="text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52] transition-colors">
@@ -262,7 +262,7 @@ export default function HomePage() {
               <Link href="/tours" className="block text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52]">
                 Explore Tours
               </Link>
-              <Link href="/providers" className="block text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52]">
+              <Link href="/provider-portal" className="block text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52]">
                 For Providers
               </Link>
               <Link href="/about" className="block text-sm font-medium text-[#4A3A2A]/70 hover:text-[#A67C52]">
@@ -606,7 +606,7 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/providers">
+              <Link href="/provider-portal">
                 <Button size="lg" variant="secondary" className="mt-4 bg-white text-[#4A3A2A] hover:bg-[#FAF8F3]">
                 Register Your Company
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -720,7 +720,7 @@ export default function HomePage() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/providers" className="text-white/60 hover:text-[#A67C52] text-sm transition-colors">
+                  <Link href="/provider-portal" className="text-white/60 hover:text-[#A67C52] text-sm transition-colors">
                     Travel Providers
                   </Link>
                 </li>

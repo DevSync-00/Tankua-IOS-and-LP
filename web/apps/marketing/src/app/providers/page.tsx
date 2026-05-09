@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button, Card, Badge } from "@tankua/ui";
+import { providerPortalUrl, providerRegisterUrl } from "@/lib/portalUrls";
 
 const benefits = [
   {
@@ -91,7 +92,7 @@ export default function ProvidersPage() {
               <Link href="/tours" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">Tours</Link>
               <Link href="/providers" className="text-[#D4A017] font-medium">For Providers</Link>
             </div>
-            <Link href="https://provider.tankua.et">
+            <Link href={providerPortalUrl}>
               <Button>Provider Login</Button>
             </Link>
           </div>
@@ -113,13 +114,13 @@ export default function ProvidersPage() {
                 travelers, manage your operations efficiently, and scale your business.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="https://provider.tankua.et/register">
+                <Link href={providerRegisterUrl}>
                   <Button size="lg" className="bg-[#D4A017] hover:bg-[#B8860B]">
                     Become a Provider
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="https://provider.tankua.et">
+                <Link href={providerPortalUrl}>
                   <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
                     Provider Login
                   </Button>
@@ -260,7 +261,7 @@ export default function ProvidersPage() {
           <p className="text-lg text-white/70 mb-8">
             Join Tankua today and start reaching thousands of travelers looking for trusted tour providers.
           </p>
-          <Link href="https://provider.tankua.et/register">
+          <Link href={providerRegisterUrl}>
             <Button size="lg" className="bg-[#D4A017] hover:bg-[#B8860B]">
               Apply to Become a Provider
               <ChevronRight className="ml-2 h-5 w-5" />
