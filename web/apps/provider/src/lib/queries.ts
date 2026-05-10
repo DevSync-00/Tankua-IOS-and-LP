@@ -354,9 +354,11 @@ export interface BookingDetails {
   trip: {
     id: string;
     departure_date: string;
-    destination: { name: string } | null;
+    destination: { id: string; name: string } | null;
   } | null;
   pickup_station: { name: string } | null;
+  destination_id?: string | null;
+  destination_name?: string | null;
   seats: number;
   total_price: number;
   status: string;
@@ -384,6 +386,7 @@ export async function getProviderBookings(
       payment_status,
       created_at,
       pickup_station,
+      destination_id,
       destination_name,
       provider_id,
       users (id, name, phone_number),
@@ -391,7 +394,7 @@ export async function getProviderBookings(
         id,
         departure_date,
         provider_id,
-        destinations (name)
+        destinations (id, name)
       )
     `, { count: 'exact' })
     .eq('provider_id', providerId)
@@ -426,6 +429,7 @@ export async function getProviderBookings(
         destination: b.trips.destinations,
       } : null,
       pickup_station: b.pickup_station, // JSONB column, not a foreign key
+      destination_id: b.destination_id,
       destination_name: b.destination_name,
       seats: b.seats,
       total_price: b.total_price,
@@ -461,6 +465,8 @@ export async function updateBookingStatus(
 export interface TripDetails {
   id: string;
   destination: { id: string; name: string; city?: string; region?: string } | null;
+  destination_id?: string | null;
+  destination_name?: string | null;
   departure_date: string;
   return_date: string | null;
   trip_type: string;
@@ -529,6 +535,8 @@ export async function getProviderTrips(
     trips: (data || []).map((t: any) => ({
       id: t.id,
       destination: t.destinations || null,
+      destination_id: t.destinations?.id || null,
+      destination_name: t.destinations?.name || null,
       departure_date: t.departure_date || t.date,
       return_date: t.return_date,
       trip_type: t.trip_type,
