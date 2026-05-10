@@ -59,7 +59,7 @@ export default function RegistrationSuccessPage() {
               <div>
                 <p className="font-medium text-[#0A1A2F]">Get approved</p>
                 <p className="text-sm text-muted-foreground">
-                  Once approved, you'll receive login credentials to access the Provider Portal.
+                  Once approved, you'll receive login credentials to access the Providers Portal.
                 </p>
               </div>
             </div>

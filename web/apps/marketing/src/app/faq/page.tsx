@@ -86,7 +86,7 @@ const faqs = [
       },
       {
         q: "Can I manage my trips on the platform?",
-        a: "Yes! The Provider Portal gives you full control over trips, bookings, drivers, vehicles, and earnings.",
+        a: "Yes! The Providers Portal gives you full control over trips, bookings, drivers, vehicles, and earnings.",
       },
     ],
   },

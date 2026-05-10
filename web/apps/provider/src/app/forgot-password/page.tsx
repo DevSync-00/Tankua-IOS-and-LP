@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
             </div>
             <div>
               <span className="text-2xl font-bold text-white">Tankua</span>
-              <span className="block text-sm text-white/50">Provider Portal</span>
+              <span className="block text-sm text-white/50">Providers Portal</span>
             </div>
           </Link>
         </div>
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg mb-4">
               <span className="text-white font-bold text-3xl">T</span>
             </div>
-            <h1 className="text-2xl font-bold text-white">Provider Portal</h1>
+            <h1 className="text-2xl font-bold text-white">Providers Portal</h1>
           </div>
 
           <Card className="bg-white p-8">

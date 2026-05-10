@@ -38,22 +38,46 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* Tankua brand tokens */
+        amber: {
+          DEFAULT: "#EF9F27",
+          light: "#F4C430",
+          dark: "#BA7517",
+        },
+        coffee: {
+          DEFAULT: "#1C0A00",
+          light: "#2E1400",
+        },
+      },
+      fontFamily: {
+        sans: ["var(--font-jakarta)", "Plus Jakarta Sans", "system-ui", "sans-serif"],
+        serif: ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
+        jakarta: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        playfair: ["var(--font-playfair)", "Georgia", "serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-      },
-      fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        xl: "16px",
+        "2xl": "20px",
+        "3xl": "24px",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-out forwards",
-        "slide-up": "slideUp 0.5s ease-out forwards",
+        "slide-up": "slideUp 0.4s ease-out forwards",
         "slide-down": "slideDown 0.3s ease-out forwards",
-        "float": "float 6s ease-in-out infinite",
-        "pulse-glow": "pulseGlow 2s ease-in-out infinite",
+      },
+      keyframes: {
+        fadeIn: { "0%": { opacity: "0" }, "100%": { opacity: "1" } },
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        slideDown: {
+          "0%": { opacity: "0", transform: "translateY(-10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
     },
   },
@@ -61,4 +85,3 @@ const config: Config = {
 };
 
 export default config;
-

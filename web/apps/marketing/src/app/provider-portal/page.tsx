@@ -9,7 +9,7 @@ export default function ProviderPortalPage() {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-10">
           <Badge className="mb-4 bg-[#A67C52]/10 text-[#8B6B47] border-[#A67C52]/20">
-            Tankua Provider Portal
+            Tankua Providers Portal
           </Badge>
           <h1 className="text-4xl md:text-5xl font-bold text-[#4A3A2A] mb-4">
             Manage Your Tours on Tankua
@@ -33,7 +33,7 @@ export default function ProviderPortalPage() {
               </p>
               <Link href={providerPortalUrl}>
                 <Button className="bg-[#A67C52] hover:bg-[#8B6B47] text-white">
-                  Open Provider Portal
+                  Open Providers Portal
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>

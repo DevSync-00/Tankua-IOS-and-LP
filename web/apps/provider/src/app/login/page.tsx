@@ -31,55 +31,30 @@ export default function LoginPage() {
         return;
       }
       
-      // Check if provider exists first
-      const { data: providerCheck } = await supabase
-        .from('providers')
-        .select('id, email, status')
-        .eq('email', emailLower)
-        .maybeSingle();
-
-      // Attempt to sign in
+      // Attempt to sign in first — provider/RLS checks require an authenticated session
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: emailLower,
         password,
       });
 
       if (authError) {
-        console.error('Auth error details:', {
-          message: authError.message,
-          status: authError.status,
-          name: authError.name,
-          fullError: authError
-        });
-        
-        // Provide more helpful error messages based on error type
+        console.error('Auth error details:', authError);
+
         if (authError.message?.includes('Email not confirmed') || authError.message?.includes('email_not_confirmed')) {
           setError("Please check your email and confirm your account before logging in. Check your inbox (and spam folder) for a confirmation link.");
-        } else if (authError.message?.includes('Invalid login credentials') || authError.message?.includes('invalid_credentials') || authError.status === 400) {
-          // Check if provider exists - if so, auth user might not exist or password is wrong
-          if (providerCheck) {
-            // Check if provider_user exists (created by trigger when approved)
-            const { data: providerUserCheck } = await supabase
-              .from('provider_users')
-              .select('id')
-              .eq('email', emailLower)
-              .maybeSingle();
-
-            if (providerCheck.status === 'inactive') {
-              setError("Your provider account is pending approval. Please wait for admin approval before logging in. Once approved, you'll be able to log in.");
-            } else if (providerUserCheck) {
-              // Provider is active and provider_user exists, but auth login failed
-              // This means: auth user doesn't exist OR wrong password OR email not confirmed
-              setError("Authentication account not set up or password incorrect. Since your provider account is approved, please use 'Forgot Password' to set up your login credentials. If that doesn't work, contact support - your authentication account may need to be created manually.");
-            } else {
-              // Provider is active but provider_user doesn't exist - trigger might have failed
-              setError("Your provider account is approved, but login setup is incomplete. Please contact support to complete your account setup.");
-            }
-          } else {
-            setError("No provider account found with this email. Please register first or check your email address.");
-          }
+        } else if (
+          authError.message?.includes('Invalid login credentials') ||
+          authError.message?.includes('invalid_credentials') ||
+          authError.status === 400 ||
+          authError.status === 401
+        ) {
+          // Now that auth failed we still have no session, so we can only give a generic message.
+          // Show the most likely scenario for a Providers Portal.
+          setError(
+            "Invalid email or password. If your provider account was recently approved, use 'Forgot Password' to set up your credentials. Contact support if the issue persists."
+          );
         } else {
-          setError(authError.message || `Login failed: ${authError.status || 'Unknown error'}. Please try again or contact support.`);
+          setError(authError.message || `Login failed (${authError.status ?? 'unknown'}). Please try again or contact support.`);
         }
         return;
       }
@@ -133,7 +108,7 @@ export default function LoginPage() {
             </div>
             <div>
               <span className="text-2xl font-bold text-white">Tankua</span>
-              <span className="block text-sm text-white/50">Provider Portal</span>
+              <span className="block text-sm text-white/50">Providers Portal</span>
             </div>
           </Link>
         </div>
@@ -177,7 +152,7 @@ export default function LoginPage() {
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg mb-4">
               <span className="text-white font-bold text-3xl">T</span>
             </div>
-            <h1 className="text-2xl font-bold text-white">Provider Portal</h1>
+            <h1 className="text-2xl font-bold text-white">Providers Portal</h1>
           </div>
 
           <Card className="bg-white p-8">

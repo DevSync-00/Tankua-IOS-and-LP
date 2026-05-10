@@ -21,6 +21,7 @@ import {
   X,
   Shield,
   FileText,
+  Menu,
 } from "lucide-react";
 import { cn } from "@tankua/ui";
 
@@ -67,12 +68,10 @@ export function Sidebar() {
     }
   }, []);
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
@@ -86,143 +85,152 @@ export function Sidebar() {
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-    
+
     return (
       <Link
         href={item.href}
         onClick={() => setIsMobileMenuOpen(false)}
         className={cn(
-          "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
           isActive
-            ? "bg-[#D4A017] text-[#0A1A2F]"
-            : "text-white/70 hover:bg-white/10 hover:text-white"
+            ? "bg-[#EF9F27] text-[#1C0A00] shadow-sm"
+            : "text-white/65 hover:bg-white/8 hover:text-white"
         )}
       >
-        <item.icon className="h-5 w-5" />
+        <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive ? "text-[#1C0A00]" : "")} />
         <span>{item.label}</span>
-        {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+        {isActive && <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#1C0A00]/60" />}
       </Link>
     );
   };
 
-  return (
-    <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-[#0A1A2F] text-white rounded-lg shadow-lg"
-        aria-label="Open menu"
-      >
-        <LayoutDashboard className="h-6 w-6" />
-      </button>
+  const NavSection = ({
+    label,
+    items,
+  }: {
+    label: string;
+    items: typeof mainNavItems;
+  }) => (
+    <div className="space-y-0.5">
+      <p className="px-3 mb-2 text-[10px] font-semibold text-white/30 uppercase tracking-widest">
+        {label}
+      </p>
+      {items.map((item) => (
+        <NavItem key={item.href} item={item} />
+      ))}
+    </div>
+  );
 
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+  const adminName = currentAdmin?.name || "Admin";
+  const adminEmail = currentAdmin?.email || "admin@tankua.et";
+  const adminInitial = adminName.charAt(0).toUpperCase();
+
+  const SidebarContent = () => (
+    <aside className="flex flex-col h-full bg-[#1C0A00]">
+      {/* Logo + Admin badge */}
+      <div className="px-5 py-5 border-b border-white/8 flex items-center justify-between">
+        <Link
+          href="/dashboard"
           onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed left-0 top-0 bottom-0 w-64 bg-[#0A1A2F] flex flex-col z-50 transition-transform duration-300",
-          "lg:translate-x-0",
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-      {/* Logo */}
-      <div className="p-6 border-b border-white/10 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-xl">T</span>
+          className="flex items-center gap-3 group"
+        >
+          <div className="relative">
+            <div className="w-9 h-9 rounded-xl bg-[#EF9F27] flex items-center justify-center shadow-md shrink-0 group-hover:brightness-110 transition-all">
+              <span className="text-[#1C0A00] font-bold text-lg leading-none">T</span>
+            </div>
+            <span className="absolute -bottom-1 -right-1 bg-[#1D9E75] text-white text-[8px] font-bold px-1 py-0.5 rounded leading-none">
+              ADM
+            </span>
           </div>
           <div>
-            <span className="text-xl font-bold text-white">Tankua</span>
-            <span className="block text-xs text-white/50">Admin Panel</span>
+            <span className="text-[15px] font-semibold text-white tracking-tight">Tankua</span>
+            <span className="block text-[10px] text-[#EF9F27]/70 font-medium tracking-wide">
+              Admin Panel
+            </span>
           </div>
         </Link>
         <button
           onClick={() => setIsMobileMenuOpen(false)}
-          className="lg:hidden p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="lg:hidden p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           aria-label="Close menu"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-6">
-        {/* Main */}
-        <div>
-          <p className="px-4 text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
-            Main
-          </p>
-          <div className="space-y-1">
-            {mainNavItems.map((item) => (
-              <NavItem key={item.href} item={item} />
-            ))}
-          </div>
-        </div>
-
-        {/* Finance */}
-        <div>
-          <p className="px-4 text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
-            Finance
-          </p>
-          <div className="space-y-1">
-            {financeItems.map((item) => (
-              <NavItem key={item.href} item={item} />
-            ))}
-          </div>
-        </div>
-
-        {/* System */}
-        <div>
-          <p className="px-4 text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
-            System
-          </p>
-          <div className="space-y-1">
-            {systemItems.map((item) => (
-              <NavItem key={item.href} item={item} />
-            ))}
-          </div>
-        </div>
-
-        {/* Admin Management (Super Admin Only) */}
+      <nav className="flex-1 overflow-y-auto sidebar-scroll px-3 py-4 space-y-5">
+        <NavSection label="Platform" items={mainNavItems} />
+        <div className="h-px bg-white/6 mx-1" />
+        <NavSection label="Finance" items={financeItems} />
+        <div className="h-px bg-white/6 mx-1" />
+        <NavSection label="System" items={systemItems} />
         {isSuperAdmin && (
-          <div>
-            <p className="px-4 text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
-              Administration
-            </p>
-            <div className="space-y-1">
-              {adminItems.map((item) => (
-                <NavItem key={item.href} item={item} />
-              ))}
-            </div>
-          </div>
+          <>
+            <div className="h-px bg-white/6 mx-1" />
+            <NavSection label="Administration" items={adminItems} />
+          </>
         )}
       </nav>
 
-      {/* User */}
-      <div className="p-4 border-t border-white/10">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-          <div className="w-10 h-10 rounded-full bg-[#D4A017] flex items-center justify-center text-white font-semibold">
-            A
+      {/* Admin profile + sign out */}
+      <div className="px-3 pb-4 pt-3 border-t border-white/8 space-y-1">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5">
+          <div className="w-8 h-8 rounded-full bg-[#EF9F27] flex items-center justify-center text-[#1C0A00] font-bold text-sm shrink-0">
+            {adminInitial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Admin User</p>
-            <p className="text-xs text-white/50 truncate">admin@tankua.et</p>
+            <p className="text-sm font-medium text-white truncate leading-tight">{adminName}</p>
+            <p className="text-[10px] text-white/40 truncate mt-0.5">{adminEmail}</p>
           </div>
         </div>
-        <button className="w-full mt-3 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-all">
-          <LogOut className="h-5 w-5" />
+        <button
+          onClick={() => {
+            localStorage.removeItem("admin_user");
+            window.location.href = "/login";
+          }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/50 hover:bg-white/8 hover:text-white/80 transition-all"
+        >
+          <LogOut className="h-4 w-4" />
           <span>Sign Out</span>
         </button>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setIsMobileMenuOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-[#1C0A00] text-white rounded-xl shadow-lg border border-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block fixed left-0 top-0 bottom-0 w-60 z-50">
+        <SidebarContent />
+      </div>
+
+      {/* Mobile sidebar drawer */}
+      <div
+        className={cn(
+          "lg:hidden fixed left-0 top-0 bottom-0 w-60 z-50 transition-transform duration-300 ease-in-out",
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <SidebarContent />
+      </div>
     </>
   );
 }
-
