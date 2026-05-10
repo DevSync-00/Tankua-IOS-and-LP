@@ -16,8 +16,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Tankua Admin Dashboard",
-  description: "Manage your Tankua platform - users, bookings, providers, and analytics.",
+  title: "Tankua — Admin Dashboard",
+  description: "Manage your Tankua platform — users, bookings, providers, and analytics.",
 };
 
 export default function RootLayout({

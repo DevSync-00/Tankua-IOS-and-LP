@@ -26,6 +26,23 @@ import {
 } from "lucide-react";
 import { Button, Card, Badge } from "@tankua/ui";
 
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type TourItem = {
+  id: string | number;
+  name: string;
+  location: string;
+  category: string;
+  image: string;
+  rating: number;
+  reviews: number;
+  price: number;
+  duration?: string;
+  groupSize?: string;
+  tagColor?: string;
+  description?: string;
+};
+
 // ── Static data ─────────────────────────────────────────────────────────────
 
 const destinations = [
@@ -114,13 +131,13 @@ const whyUs = [
   },
 ];
 
-const featuredToursStatic = [
+const featuredToursStatic: TourItem[] = [
   {
     id: 1,
     name: "Lalibela Rock-Hewn Churches Tour",
     location: "Lalibela, Amhara",
     category: "Cultural",
-    image: "/images/pexels-christian-alemu-127251395-30177512.jpg",
+    image: "/images/eth-photo-3.jpg",
     rating: 4.9,
     reviews: 2847,
     price: 1500,
@@ -133,7 +150,7 @@ const featuredToursStatic = [
     name: "Simien Mountains Trekking Adventure",
     location: "Gondar, Amhara",
     category: "Trekking",
-    image: "/images/pexels-amanuel-fiseha-1532137422-27247762.jpg",
+    image: "/images/eth-photo-5.jpg",
     rating: 4.8,
     reviews: 1893,
     price: 2500,
@@ -146,7 +163,7 @@ const featuredToursStatic = [
     name: "Lake Tana & Blue Nile Falls",
     location: "Bahir Dar",
     category: "Adventure",
-    image: "/images/pexels-fanuel-33019023.jpg",
+    image: "/images/eth-photo-2.jpg",
     rating: 4.7,
     reviews: 1856,
     price: 1200,
@@ -159,7 +176,7 @@ const featuredToursStatic = [
     name: "Danakil Depression Expedition",
     location: "Afar Region",
     category: "Adventure",
-    image: "/images/pexels-atypeek-12131129.jpg",
+    image: "/images/eth-photo-4.jpg",
     rating: 4.9,
     reviews: 1245,
     price: 3500,
@@ -212,7 +229,7 @@ const navLinks = [
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [tours, setTours] = useState(featuredToursStatic);
+  const [tours, setTours] = useState<TourItem[]>(featuredToursStatic);
   const [loading, setLoading] = useState(true);
   const [langLabel, setLangLabel] = useState<"EN" | "አማ">("EN");
 

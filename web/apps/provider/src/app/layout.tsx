@@ -16,8 +16,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Tankua Providers Portal",
-  description: "Manage your travel business with Tankua - bookings, drivers, vehicles, and earnings.",
+  title: "Tankua — Providers Portal",
+  description: "Manage your travel business with Tankua — bookings, drivers, vehicles, and earnings.",
 };
 
 export default function RootLayout({

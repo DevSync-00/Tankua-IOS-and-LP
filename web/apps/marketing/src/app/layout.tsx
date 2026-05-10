@@ -16,15 +16,22 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Tankua - Discover Amazing Tours & Travel in Ethiopia",
-  description: "Book unforgettable tours and travel experiences across Ethiopia. Explore adventure tours, cultural experiences, historical sites, wildlife safaris, and more with trusted travel providers.",
+  title: "Tankua — Discover Tours & Travel in Ethiopia",
+  description: "Book unforgettable tours across Ethiopia. Local-born guides, verified providers, ETB & USD pricing. Lalibela, Simien Mountains, Danakil Depression, Omo Valley and more.",
   keywords: ["Ethiopia", "tours", "travel", "adventure", "cultural tours", "Lalibela", "Simien Mountains", "Danakil", "booking", "tourism"],
   openGraph: {
-    title: "Tankua - Discover Amazing Tours & Travel in Ethiopia",
-    description: "Book unforgettable tours and travel experiences across Ethiopia with trusted providers.",
+    title: "Tankua — Discover Tours & Travel in Ethiopia",
+    description: "Book unforgettable tours across Ethiopia with verified local providers.",
     type: "website",
     locale: "en_US",
     siteName: "Tankua",
+    images: [{ url: "/images/splash.jpg", width: 1200, height: 630, alt: "Tankua Ethiopia Tours" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tankua — Discover Tours & Travel in Ethiopia",
+    description: "Book unforgettable tours across Ethiopia with verified local providers.",
+    images: ["/images/splash.jpg"],
   },
 };
 
