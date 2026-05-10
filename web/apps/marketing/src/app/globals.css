@@ -37,11 +37,9 @@
   }
 }
 
-/* Hero: dark coffee-brown with tibeb SVG pattern overlay */
-.hero-dark {
-  background-color: #1C0A00;
-  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23EF9F27' fill-opacity='0.06'%3E%3Cpath d='M40 0L80 40L40 80L0 40Z'/%3E%3Ccircle cx='40' cy='40' r='3'/%3E%3Ccircle cx='0' cy='0' r='2'/%3E%3Ccircle cx='80' cy='0' r='2'/%3E%3Ccircle cx='0' cy='80' r='2'/%3E%3Ccircle cx='80' cy='80' r='2'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 80px 80px;
+/* Hero photo fallback (used only if next/image fails to mount) */
+.hero-photo-fallback {
+  background: linear-gradient(165deg, #0d2b1a 0%, #1a4a2e 30%, #2d6a3f 55%, #1c5040 75%, #1C0A00 100%);
 }
 
 /* Card with warm Tankua styling */

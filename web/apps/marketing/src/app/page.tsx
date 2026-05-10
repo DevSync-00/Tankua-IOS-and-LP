@@ -258,9 +258,9 @@ export default function HomePage() {
 
       {/* ── NAVBAR ── */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
-            ? "bg-white/96 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-b border-black/[0.06]"
+            ? "bg-white/95 backdrop-blur-lg shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-b border-black/[0.06]"
             : "bg-transparent"
         }`}
       >
@@ -272,7 +272,7 @@ export default function HomePage() {
                 <span className="text-[#1C0A00] font-bold text-lg leading-none">T</span>
               </div>
               <span
-                className="text-xl font-bold text-[#1A1208]"
+                className={`text-xl font-bold transition-colors duration-300 ${isScrolled ? "text-[#1A1208]" : "text-white"}`}
                 style={{ fontFamily: "var(--font-playfair, Georgia)" }}
               >
                 Tankua
@@ -285,7 +285,11 @@ export default function HomePage() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="text-sm font-medium text-[#6B5E4E] hover:text-[#1A1208] transition-colors"
+                  className={`text-sm font-medium transition-colors duration-300 ${
+                    isScrolled
+                      ? "text-[#6B5E4E] hover:text-[#1A1208]"
+                      : "text-white/80 hover:text-white"
+                  }`}
                 >
                   {l.label}
                 </Link>
@@ -294,17 +298,24 @@ export default function HomePage() {
 
             {/* Right actions */}
             <div className="hidden md:flex items-center gap-3">
-              {/* Language switcher */}
               <button
                 onClick={() => setLangLabel((p) => (p === "EN" ? "አማ" : "EN"))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#6B5E4E] hover:bg-[#FAFAF8] border border-black/[0.08] transition-colors"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ${
+                  isScrolled
+                    ? "text-[#6B5E4E] hover:bg-[#FAFAF8] border border-black/[0.08]"
+                    : "text-white/70 hover:text-white border border-white/20"
+                }`}
                 aria-label="Switch language"
               >
                 <Globe className="h-3.5 w-3.5" />
                 {langLabel}
               </button>
               <Link href="/login">
-                <button className="text-sm font-medium text-[#1A1208] hover:text-[#EF9F27] transition-colors px-3 py-1.5">
+                <button
+                  className={`text-sm font-medium transition-colors duration-300 px-3 py-1.5 ${
+                    isScrolled ? "text-[#1A1208] hover:text-[#EF9F27]" : "text-white/85 hover:text-white"
+                  }`}
+                >
                   Sign In
                 </button>
               </Link>
@@ -318,7 +329,9 @@ export default function HomePage() {
 
             {/* Mobile hamburger */}
             <button
-              className="md:hidden p-2 text-[#1A1208] min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className={`md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors duration-300 ${
+                isScrolled ? "text-[#1A1208]" : "text-white"
+              }`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
@@ -359,79 +372,116 @@ export default function HomePage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="relative min-h-screen flex flex-col justify-center hero-dark pt-16 overflow-hidden">
-        {/* Radial warm glow behind content */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-[#EF9F27]/10 rounded-full blur-3xl" />
+      <section className="relative min-h-screen flex flex-col justify-center overflow-hidden">
+
+        {/* ─ Full-bleed landscape photo ─ */}
+        <div className="absolute inset-0">
+          <Image
+            src="/images/splash.jpg"
+            alt="Ethiopian highland landscape — Simien Mountains"
+            fill
+            className="object-cover object-[center_30%]"
+            priority
+            quality={92}
+            sizes="100vw"
+          />
+
+          {/* Layered atmospheric gradient — sky to earth, keeps photo visible at midpoint */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: [
+                /* top vignette — dark enough for nav readability */
+                "linear-gradient(180deg, rgba(8,18,8,0.60) 0%, rgba(8,18,8,0.20) 18%, transparent 38%)",
+                /* center — fully transparent so the landscape breathes */
+                /* bottom ramp — warm earth darkness for text */
+                "linear-gradient(0deg, rgba(12,6,0,0.88) 0%, rgba(12,6,0,0.55) 22%, rgba(12,6,0,0.10) 45%, transparent 65%)",
+              ].join(", "),
+            }}
+          />
+
+          {/* Very subtle warm amber bloom at horizon center */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+            style={{
+              bottom: "30%",
+              width: "60vw",
+              height: "30vh",
+              background: "radial-gradient(ellipse at center, rgba(239,159,39,0.10) 0%, transparent 70%)",
+              filter: "blur(40px)",
+            }}
+          />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 text-center">
-          {/* Overline badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EF9F27]/15 border border-[#EF9F27]/25 mb-8">
+        {/* ─ Content ─ */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-28 text-center flex flex-col items-center">
+
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-[#EF9F27]" />
-            <span className="text-xs font-medium text-[#EF9F27] tracking-wide">
+            <span className="text-xs font-medium text-white/90 tracking-wide">
               #1 Tour & Travel Platform in Ethiopia
             </span>
           </div>
 
           {/* Headline */}
           <h1
-            className="text-[clamp(28px,6vw,64px)] font-semibold leading-[1.12] text-white mb-6 max-w-4xl mx-auto"
+            className="text-[clamp(30px,5.5vw,66px)] font-semibold leading-[1.1] text-white mb-5 max-w-4xl drop-shadow-sm"
             style={{ fontFamily: "var(--font-playfair, Georgia)" }}
           >
             Discover Ethiopia's{" "}
-            <span className="text-[#EF9F27]">Ancient Wonders</span>
+            <span style={{ color: "#EF9F27" }}>Ancient Wonders</span>
             {" "}& Hidden Landscapes
           </h1>
 
-          <p className="text-base sm:text-lg text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Book unforgettable tours with local-born guides — from the rock churches of Lalibela to
-            the alien landscape of Danakil Depression.
+          <p className="text-base sm:text-lg text-white/70 max-w-xl mx-auto mb-10 leading-relaxed drop-shadow-sm">
+            Book unforgettable tours with local-born guides — from the rock churches of Lalibela
+            to the alien landscape of Danakil Depression.
           </p>
 
-          {/* CTA row */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-14">
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-12">
             <Link href="/tours">
-              <button className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#EF9F27] text-[#412402] font-semibold text-sm hover:brightness-105 active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(239,159,39,0.35)]">
+              <button className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[#EF9F27] text-[#412402] font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_4px_20px_rgba(239,159,39,0.40)]">
                 Explore Tours
                 <ArrowRight className="h-4 w-4" />
               </button>
             </Link>
             <Link href="/download">
-              <button className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/20 text-white text-sm font-medium hover:bg-white/8 active:scale-[0.98] transition-all">
+              <button className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white/12 backdrop-blur-sm border border-white/25 text-white text-sm font-medium hover:bg-white/20 active:scale-[0.98] transition-all">
                 Download the App
-                <ChevronRight className="h-4 w-4 text-white/50" />
+                <ChevronRight className="h-4 w-4 text-white/60" />
               </button>
             </Link>
           </div>
 
-          {/* Inline search bar */}
-          <div className="max-w-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-0 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl overflow-hidden p-1">
+          {/* Search bar */}
+          <div className="w-full max-w-2xl">
+            <div className="flex flex-col sm:flex-row bg-white/12 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden p-1 shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
               <div className="flex-1 flex items-center gap-3 px-4 py-3">
                 <MapPin className="h-4 w-4 text-[#EF9F27] shrink-0" />
                 <input
                   type="text"
                   placeholder="Destination (e.g. Lalibela, Simien...)"
-                  className="bg-transparent text-sm text-white placeholder:text-white/40 outline-none w-full"
+                  className="bg-transparent text-sm text-white placeholder:text-white/45 outline-none w-full"
                 />
               </div>
-              <div className="hidden sm:block w-px bg-white/10 my-2" />
+              <div className="hidden sm:block w-px bg-white/15 my-2" />
               <div className="flex-1 flex items-center gap-3 px-4 py-3">
                 <Calendar className="h-4 w-4 text-[#EF9F27] shrink-0" />
                 <input
                   type="text"
                   placeholder="Travel dates"
-                  className="bg-transparent text-sm text-white placeholder:text-white/40 outline-none w-full"
+                  className="bg-transparent text-sm text-white placeholder:text-white/45 outline-none w-full"
                 />
               </div>
-              <div className="hidden sm:block w-px bg-white/10 my-2" />
+              <div className="hidden sm:block w-px bg-white/15 my-2" />
               <div className="flex-1 flex items-center gap-3 px-4 py-3">
                 <Users className="h-4 w-4 text-[#EF9F27] shrink-0" />
                 <input
                   type="text"
                   placeholder="Travelers"
-                  className="bg-transparent text-sm text-white placeholder:text-white/40 outline-none w-full"
+                  className="bg-transparent text-sm text-white placeholder:text-white/45 outline-none w-full"
                 />
               </div>
               <button className="m-0.5 px-6 py-3 rounded-xl bg-[#EF9F27] text-[#412402] font-semibold text-sm hover:brightness-105 transition-all flex items-center gap-2 justify-center shrink-0">
@@ -441,26 +491,27 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Stats strip */}
-          <div className="flex flex-wrap justify-center gap-8 sm:gap-12 mt-14 pt-10 border-t border-white/8">
+          {/* Stats */}
+          <div className="flex flex-wrap justify-center gap-8 sm:gap-14 mt-14 pt-10 border-t border-white/10">
             {stats.map((stat, i) => (
               <div key={i} className="text-center">
                 <div
-                  className="text-2xl sm:text-3xl font-bold text-[#EF9F27]"
+                  className="text-2xl sm:text-3xl font-bold text-[#EF9F27] drop-shadow-sm"
                   style={{ fontFamily: "var(--font-playfair, Georgia)" }}
                 >
                   {stat.value}
                 </div>
-                <div className="text-xs text-white/45 mt-1">{stat.label}</div>
+                <div className="text-xs text-white/50 mt-1 tracking-wide">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Wave divider */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 80" className="w-full h-auto fill-[#FAFAF8]" preserveAspectRatio="none">
-            <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" />
+        {/* Soft wave into next section */}
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
+          <svg viewBox="0 0 1440 90" className="w-full h-auto fill-[#FAFAF8]" preserveAspectRatio="none">
+            <path d="M0,50 C240,90 480,10 720,50 C960,90 1200,20 1440,50 L1440,90 L0,90 Z" opacity="0.9"/>
+            <path d="M0,65 C360,30 1080,90 1440,60 L1440,90 L0,90 Z" opacity="0.6"/>
           </svg>
         </div>
       </section>
