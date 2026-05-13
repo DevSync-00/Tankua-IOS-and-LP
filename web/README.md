@@ -180,5 +180,5 @@ Recommended deployment on Vercel:
 
 ## 📄 License
 
-© 2024 Tankua. All rights reserved.
+© 2026 BIT Labs Technologies. All rights reserved.
 

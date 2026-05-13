@@ -471,7 +471,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-white/[0.08] pt-7 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="font-dm text-[12px] text-white/35">© {new Date().getFullYear()} Tankua Technologies. All rights reserved.</p>
+            <p className="font-dm text-[12px] text-white/35">© {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.</p>
             <div className="flex items-center gap-3">
               {["Telebirr", "Visa", "Mastercard"].map((p) => (
                 <span key={p} className="font-dm text-[11px] text-white/30 border border-white/10 px-2 py-1 rounded">{p}</span>

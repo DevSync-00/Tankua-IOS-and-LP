@@ -177,7 +177,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="relative text-white/40 text-sm">
-          © 2024 Tankua. All rights reserved.
+          © {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.
         </div>
       </div>
 

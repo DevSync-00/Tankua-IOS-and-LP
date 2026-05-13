@@ -233,7 +233,7 @@ export default function ContactPage() {
               <span className="text-white font-bold">Tankua</span>
             </div>
             <p className="text-white/50 text-sm">
-              © {new Date().getFullYear()} Tankua. All rights reserved.
+              © {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.
             </p>
           </div>
         </div>
