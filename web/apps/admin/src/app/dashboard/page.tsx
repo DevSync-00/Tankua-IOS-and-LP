@@ -1,38 +1,137 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { 
-  Users, 
-  CalendarCheck, 
-  CreditCard, 
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
-  Building2,
-  MoreHorizontal,
-  Church,
-  MapPin,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Filter,
-  RefreshCw,
+import { useState, useEffect, useRef } from "react";
+import {
+  Users, CalendarCheck, CreditCard, Building2,
+  TrendingUp, AlertCircle, RefreshCw, ArrowUpRight,
+  CheckCircle2, XCircle, Filter, MapPin,
 } from "lucide-react";
 import { Header } from "@/components/header";
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Avatar, StatCard, formatCurrency } from "@tankua/ui";
+import { formatCurrency } from "@tankua/ui";
 import {
-  getDashboardStats,
-  getRecentBookings,
-  getTopProviders,
-  getTopChurches,
-  getBookingTrends,
-  getRevenueAnalytics,
-  type DashboardStats,
-  type RecentBooking,
-  type TopProvider,
-  type TopChurch,
+  getDashboardStats, getRecentBookings, getTopProviders,
+  getTopChurches, getBookingTrends, getRevenueAnalytics,
+  type DashboardStats, type RecentBooking, type TopProvider, type TopChurch,
 } from "@/lib/queries";
 
+// ─── CountUp ─────────────────────────────────────────────
+function CountUp({ target, duration = 1200 }: { target: number; duration?: number }) {
+  const [val, setVal] = useState(0);
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || target === 0) return;
+    started.current = true;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      setVal(Math.round((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+  return <>{val.toLocaleString()}</>;
+}
+
+// ─── FoldCorner ───────────────────────────────────────────
+function FoldCorner() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"
+      className="absolute top-0 right-0 pointer-events-none" aria-hidden="true">
+      <path d="M0 0 L22 0 L22 22 Z" fill="#C47F00" opacity="0.80" />
+    </svg>
+  );
+}
+
+// ─── StatusBadge ─────────────────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    confirmed: "bg-[#E1F5EE] text-[#0F6E56]",
+    pending:   "bg-[#FAEEDA] text-[#854F0B]",
+    cancelled: "bg-[#FAECE7] text-[#993C1D]",
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${map[status] || "bg-[#F1EFE8] text-[#5F5E5A]"}`}>
+      {status}
+    </span>
+  );
+}
+
+// ─── KPI Card ─────────────────────────────────────────────
+function KpiCard({
+  title, value, numericValue, change, icon: Icon, iconBg, iconColor,
+  alert = false, fold = false,
+}: {
+  title: string; value: string; numericValue: number; change?: number;
+  icon: React.ElementType; iconBg: string; iconColor: string;
+  alert?: boolean; fold?: boolean;
+}) {
+  const positive = (change ?? 0) >= 0;
+  return (
+    <div className="relative bg-brand-cream border border-[rgba(245,168,0,0.15)] rounded-[14px] p-4 overflow-hidden">
+      {fold && <FoldCorner />}
+      <div className="flex items-start justify-between mb-3">
+        <div className={`relative w-[30px] h-[30px] rounded-[8px] flex items-center justify-center ${iconBg}`}>
+          <Icon className={`h-4 w-4 ${iconColor}`} />
+          {alert && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-danger rounded-full animate-pulse" />}
+        </div>
+        {change !== undefined && (
+          <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${positive ? "bg-[#E1F5EE] text-[#0F6E56]" : "bg-[#FAECE7] text-[#993C1D]"}`}>
+            <ArrowUpRight className={`h-3 w-3 ${!positive ? "rotate-180" : ""}`} />
+            {Math.abs(change ?? 0)}%
+          </span>
+        )}
+      </div>
+      <p className="font-syne font-bold text-[22px] text-brand-ink leading-none mb-1">
+        {numericValue > 0 ? <CountUp target={numericValue} /> : value}
+      </p>
+      <p className="font-dm text-[12px] text-brand-muted">{title}</p>
+      {alert && (
+        <p className="font-dm text-[11px] text-danger mt-1 font-medium">Needs attention</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Region bar ───────────────────────────────────────────
+const regionColors: Record<string, string> = {
+  Amhara: "#F5A800", Oromia: "#639922",
+  Afar: "#D85A30", SNNPR: "#3A8FD4", Tigray: "#7F77DD",
+};
+
+function RegionBar({ label, value, max, color, delay = 0 }: {
+  label: string; value: number; max: number; color: string; delay?: number;
+}) {
+  const [width, setWidth] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => setWidth((value / max) * 100), delay * 1000);
+        obs.disconnect();
+      }
+    }, { threshold: 0.3 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [value, max, delay]);
+
+  return (
+    <div ref={ref} className="flex items-center gap-3">
+      <span className="font-dm text-[12px] text-brand-muted w-20 shrink-0">{label}</span>
+      <div className="flex-1 h-[5px] rounded-full" style={{ background: "rgba(245,168,0,0.10)" }}>
+        <div className="h-full rounded-full transition-all duration-[800ms] ease-out" style={{ width: `${width}%`, background: color }} />
+      </div>
+      <span className="font-dm font-medium text-[12px] text-brand-ink w-8 text-right shrink-0">{value}</span>
+    </div>
+  );
+}
+
+// ─── Activity dot ─────────────────────────────────────────
+const activityColors: Record<string, string> = {
+  submitted: "#F5A800", booking: "#1D9E75", approved: "#1D9E75",
+  payout: "#3A8FD4", flagged: "#E24B4A",
+};
+
+// ─── Main ─────────────────────────────────────────────────
 export default function DashboardPage() {
   const [timeRange, setTimeRange] = useState("30d");
   const [loading, setLoading] = useState(true);
@@ -42,443 +141,319 @@ export default function DashboardPage() {
   const [topChurches, setTopChurches] = useState<TopChurch[]>([]);
   const [bookingTrends, setBookingTrends] = useState<Array<{ date: string; bookings: number; revenue: number }>>([]);
   const [revenueAnalytics, setRevenueAnalytics] = useState<{
-    totalRevenue: number;
-    monthlyRevenue: number;
-    averageBookingValue: number;
-    revenueByStatus: Array<{ status: string; revenue: number }>;
+    totalRevenue: number; monthlyRevenue: number;
+    averageBookingValue: number; revenueByStatus: Array<{ status: string; revenue: number }>;
   } | null>(null);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [timeRange]);
+  useEffect(() => { loadDashboardData(); }, [timeRange]);
 
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [statsData, bookingsData, providersData, churchesData, trendsData, revenueData] = await Promise.all([
-        getDashboardStats(),
-        getRecentBookings(5),
-        getTopProviders(4),
-        getTopChurches(4),
-        getBookingTrends(30),
-        getRevenueAnalytics(),
+      const [s, bookings, providers, churches, trends, revenue] = await Promise.all([
+        getDashboardStats(), getRecentBookings(5), getTopProviders(5),
+        getTopChurches(5), getBookingTrends(30), getRevenueAnalytics(),
       ]);
-
-      setStats(statsData);
-      setRecentBookings(bookingsData);
-      setTopProviders(providersData);
-      setTopChurches(churchesData);
-      setBookingTrends(trendsData);
-      setRevenueAnalytics(revenueData);
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
+      setStats(s); setRecentBookings(bookings); setTopProviders(providers);
+      setTopChurches(churches); setBookingTrends(trends); setRevenueAnalytics(revenue);
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return <Badge variant="success" dot>Confirmed</Badge>;
-      case "pending":
-        return <Badge variant="warning" dot>Pending</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive" dot>Cancelled</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
-  };
-
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
-
-  const statsCards = [
-    {
-      title: "Total Users",
-      value: stats?.totalUsers?.toLocaleString() || "0",
-      change: stats?.usersChange || 0,
-      changeLabel: "vs last month",
-      icon: <Users className="h-6 w-6" />,
-    },
-    {
-      title: "Active Bookings",
-      value: stats?.totalBookings?.toLocaleString() || "0",
-      change: stats?.bookingsChange || 0,
-      changeLabel: "vs last month",
-      icon: <CalendarCheck className="h-6 w-6" />,
-    },
-    {
-      title: "Revenue (Total)",
-      value: formatCurrency(stats?.totalRevenue || 0),
-      change: 0, // Revenue change not calculated for total (all time)
-      changeLabel: "all time",
-      icon: <CreditCard className="h-6 w-6" />,
-    },
-    {
-      title: "Active Providers",
-      value: stats?.totalProviders?.toString() || "0",
-      change: stats?.providersChange || 0,
-      changeLabel: "vs last month",
-      icon: <Building2 className="h-6 w-6" />,
-    },
+  // Static activity feed
+  const activityFeed = [
+    { type: "submitted", text: <><b className="text-brand-ink font-medium">Lalibela Guides Co.</b> submitted a new tour</>, time: "3m ago" },
+    { type: "booking",   text: <><b className="text-brand-ink font-medium">Booking #5021</b> confirmed — Simien Trek</>, time: "11m ago" },
+    { type: "approved",  text: <><b className="text-brand-ink font-medium">Rift Valley Tours</b> provider approved</>, time: "28m ago" },
+    { type: "payout",    text: <>Payout of <b className="text-brand-ink font-medium">ETB 34,000</b> processed to Awash Guides</>, time: "1h ago" },
+    { type: "flagged",   text: <><b className="text-brand-ink font-medium">Report #88</b> flagged — inappropriate content</>, time: "2h ago" },
   ];
+
+  // Region data (demo)
+  const regionData = [
+    { label: "Amhara", value: 142 }, { label: "Oromia", value: 98 },
+    { label: "Afar", value: 61 }, { label: "SNNPR", value: 54 }, { label: "Tigray", value: 37 },
+  ];
+  const maxRegion = Math.max(...regionData.map((r) => r.value));
+
+  // Pending approvals (from churches as proxy)
+  const pendingApprovals = topChurches.slice(0, 3);
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Header 
-          title="Dashboard" 
-          subtitle="Loading your dashboard..."
-        />
-        <div className="p-6 flex items-center justify-center">
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <RefreshCw className="h-5 w-5 animate-spin" />
-            <span>Loading dashboard data...</span>
-          </div>
+      <div className="min-h-screen bg-brand-sand">
+        <Header title="Admin Dashboard" />
+        <div className="flex items-center justify-center h-64 gap-3 text-brand-muted">
+          <RefreshCw className="h-5 w-5 animate-spin text-brand-gold" />
+          <span className="font-dm text-[14px]">Loading dashboard…</span>
         </div>
       </div>
     );
   }
 
+  const kpis = [
+    {
+      title: "Platform GMV",
+      value: formatCurrency(stats?.totalRevenue || 0),
+      numericValue: stats?.totalRevenue || 0,
+      change: 0, icon: TrendingUp, iconBg: "bg-[#FAEEDA]", iconColor: "text-[#854F0B]", fold: true,
+    },
+    {
+      title: "Active providers",
+      value: String(stats?.totalProviders || 0),
+      numericValue: stats?.totalProviders || 0,
+      change: stats?.providersChange, icon: Building2, iconBg: "bg-[#E6F1FB]", iconColor: "text-[#185FA5]",
+    },
+    {
+      title: "Total bookings",
+      value: String(stats?.totalBookings || 0),
+      numericValue: stats?.totalBookings || 0,
+      change: stats?.bookingsChange, icon: CalendarCheck, iconBg: "bg-[#EAF3DE]", iconColor: "text-[#3B6D11]",
+    },
+    {
+      title: "Pending approvals",
+      value: String(pendingApprovals.length),
+      numericValue: 0,
+      icon: AlertCircle, iconBg: "bg-[#FAECE7]", iconColor: "text-[#993C1D]",
+      alert: pendingApprovals.length > 0,
+    },
+  ];
+
+  const avatarColors = ["#F5A800", "#1D9E75", "#3A8FD4", "#7F77DD", "#D85A30"];
+
   return (
-    <div className="min-h-screen">
-      <Header 
-        title="Dashboard" 
-        subtitle={`Welcome back! Here's what's happening with Tankua.`}
+    <div className="min-h-screen bg-brand-sand">
+      <Header
+        title="Admin Dashboard"
+        subtitle={`Last updated ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`}
         actions={
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={loadDashboardData}
-            className="gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex gap-1">
+              {["7d", "30d", "90d"].map((r) => (
+                <button key={r} onClick={() => setTimeRange(r)}
+                  className={`h-[30px] px-3 rounded-[6px] font-dm text-[12px] font-medium transition-all ${
+                    timeRange === r ? "bg-brand-gold text-brand-ink" : "text-brand-muted hover:text-brand-ink"
+                  }`}>{r}</button>
+              ))}
+            </div>
+            <button onClick={loadDashboardData}
+              className="inline-flex items-center gap-1.5 h-[34px] px-3 rounded-[8px] border border-[rgba(245,168,0,0.25)] text-brand-muted font-dm text-[12px] hover:bg-brand-sand transition-colors">
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
+          </div>
         }
       />
 
-      <div className="p-6 space-y-6">
-        {/* Time range filter */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant={timeRange === "7d" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => setTimeRange("7d")}
-            >
-              7 Days
-            </Button>
-            <Button 
-              variant={timeRange === "30d" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => setTimeRange("30d")}
-            >
-              30 Days
-            </Button>
-            <Button 
-              variant={timeRange === "90d" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => setTimeRange("90d")}
-            >
-              90 Days
-            </Button>
+      <div className="p-5 space-y-5">
+
+        {/* ── KPI Row ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpis.map((k, i) => <KpiCard key={i} {...k} />)}
+        </div>
+
+        {/* ── Two-column row ── */}
+        <div className="grid lg:grid-cols-2 gap-5">
+
+          {/* Top providers */}
+          <div className="bg-white border border-[rgba(245,168,0,0.15)] rounded-[14px] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[rgba(245,168,0,0.12)]">
+              <h2 className="font-syne font-bold text-[14px] text-brand-ink">Top providers</h2>
+              <button className="font-dm text-[12px] text-brand-muted hover:text-brand-ink transition-colors">View all →</button>
+            </div>
+            {topProviders.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <Building2 className="h-6 w-6 text-brand-gold opacity-40 mr-2" />
+                <span className="font-dm text-[13px] text-brand-muted">No providers yet</span>
+              </div>
+            ) : (
+              <div className="divide-y divide-[rgba(245,168,0,0.06)]">
+                {topProviders.map((p, i) => (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-[rgba(245,168,0,0.02)] transition-colors">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-dm font-medium text-[12px] text-white shrink-0"
+                      style={{ background: avatarColors[i % avatarColors.length] }}>
+                      {(p.name || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-dm font-medium text-[13px] text-brand-ink truncate">{p.name}</p>
+                      <p className="font-dm text-[11px] text-brand-muted">{p.bookings} trips · ★ {p.rating?.toFixed(1)}</p>
+                    </div>
+                    <span className="font-mono text-[13px] text-brand-ink shrink-0">{formatCurrency(p.revenue)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <Button variant="outline" size="sm" leftIcon={<Filter className="h-4 w-4" />}>
-            Filter
-          </Button>
+
+          {/* Bookings by region */}
+          <div className="bg-white border border-[rgba(245,168,0,0.15)] rounded-[14px] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[rgba(245,168,0,0.12)]">
+              <h2 className="font-syne font-bold text-[14px] text-brand-ink">Bookings by region</h2>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              {regionData.map((r, i) => (
+                <RegionBar key={r.label} label={r.label} value={r.value} max={maxRegion}
+                  color={regionColors[r.label] || "#F5A800"} delay={i * 0.1} />
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statsCards.map((stat, index) => (
-            <StatCard
-              key={index}
-              title={stat.title}
-              value={stat.value}
-              change={stat.change}
-              changeLabel={stat.changeLabel}
-              icon={stat.icon}
-              variant={index === 2 ? "primary" : "default"}
-            />
-          ))}
-        </div>
+        {/* ── Full-width row: Activity + Recent bookings ── */}
+        <div className="grid lg:grid-cols-2 gap-5">
 
-        {/* Charts and Tables */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Recent Bookings */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recent Bookings</CardTitle>
-              <Button variant="ghost" size="sm">View All</Button>
-            </CardHeader>
-            <CardContent>
-              {recentBookings.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <CalendarCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No bookings yet</p>
+          {/* Activity feed */}
+          <div className="bg-white border border-[rgba(245,168,0,0.15)] rounded-[14px] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[rgba(245,168,0,0.12)]">
+              <h2 className="font-syne font-bold text-[14px] text-brand-ink">Recent activity</h2>
+              <span className="font-dm text-[11px] text-brand-muted">Live</span>
+            </div>
+            <div className="divide-y divide-[rgba(245,168,0,0.06)]">
+              {activityFeed.map((a, i) => (
+                <div key={i} className="flex items-start gap-3 px-5 py-3 hover:bg-[rgba(245,168,0,0.02)] transition-colors">
+                  <div className="w-2 h-2 rounded-full mt-[5px] shrink-0"
+                    style={{ background: activityColors[a.type] || "#F5A800" }} />
+                  <p className="flex-1 font-dm text-[12px] text-brand-muted leading-relaxed">{a.text}</p>
+                  <span className="font-dm text-[11px] text-brand-muted/60 shrink-0 whitespace-nowrap">{a.time}</span>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Booking</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Destination</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Provider</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentBookings.map((booking) => (
-                        <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar name={booking.user?.name || "User"} size="sm" />
-                              <div>
-                                <p className="font-medium text-sm">{booking.user?.name || "Unknown"}</p>
-                                <p className="text-xs text-muted-foreground">{booking.id.substring(0, 8)}</p>
-                              </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent bookings */}
+          <div className="bg-white border border-[rgba(245,168,0,0.15)] rounded-[14px] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[rgba(245,168,0,0.12)]">
+              <h2 className="font-syne font-bold text-[14px] text-brand-ink">Recent bookings</h2>
+              <button className="font-dm text-[12px] text-brand-muted hover:text-brand-ink transition-colors">View all →</button>
+            </div>
+            {recentBookings.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <CalendarCheck className="h-6 w-6 text-brand-gold opacity-40 mr-2" />
+                <span className="font-dm text-[13px] text-brand-muted">No bookings yet</span>
+              </div>
+            ) : (
+              <div className="divide-y divide-[rgba(245,168,0,0.06)] overflow-x-auto">
+                <table className="w-full min-w-[440px]">
+                  <thead>
+                    <tr>
+                      {["Traveler", "Destination", "Amount", "Status"].map((h) => (
+                        <th key={h} className="text-left px-5 py-2.5 font-dm font-medium text-[10px] uppercase tracking-[0.08em] text-brand-muted">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentBookings.map((b) => (
+                      <tr key={b.id} className="border-t border-[rgba(245,168,0,0.06)] hover:bg-[rgba(245,168,0,0.02)] transition-colors">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-brand-gold flex items-center justify-center text-brand-ink font-bold text-[10px] shrink-0">
+                              {(b.user?.name || "?").charAt(0)}
                             </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <p className="text-sm truncate max-w-[150px]">{booking.church}</p>
-                          </td>
-                          <td className="py-4 px-4">
-                            <p className="text-sm text-muted-foreground">{booking.provider}</p>
-                          </td>
-                          <td className="py-4 px-4">
-                            <p className="font-medium text-sm">{formatCurrency(booking.amount)}</p>
-                          </td>
-                          <td className="py-4 px-4">
-                            {getStatusBadge(booking.status)}
-                          </td>
-                          <td className="py-4 px-4">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Top Providers */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Top Providers</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {topProviders.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No providers yet</p>
-                </div>
-              ) : (
-                topProviders.map((provider, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{provider.name}</p>
-                      <p className="text-xs text-muted-foreground">{provider.bookings} trips</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm text-primary">{formatCurrency(provider.revenue)}</p>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <span>★</span>
-                        <span>{provider.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Analytics Section */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Booking Trends */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Booking Trends (Last 30 Days)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {bookingTrends.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No booking data available</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total Bookings</span>
-                    <span className="font-semibold">{bookingTrends.reduce((sum, t) => sum + t.bookings, 0)}</span>
-                  </div>
-                  <div className="space-y-2">
-                    {bookingTrends.slice(-7).map((trend, index) => {
-                      const maxBookings = Math.max(...bookingTrends.map(t => t.bookings), 1);
-                      const percentage = (trend.bookings / maxBookings) * 100;
-                      return (
-                        <div key={index} className="space-y-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">
-                              {new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
-                            <span className="font-medium">{trend.bookings} bookings</span>
+                            <span className="font-dm text-[13px] text-brand-ink truncate max-w-[90px]">{b.user?.name || "—"}</span>
                           </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Revenue Analytics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {revenueAnalytics ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-muted/30 rounded-xl">
-                      <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-                      <p className="text-2xl font-bold">{formatCurrency(revenueAnalytics.totalRevenue)}</p>
-                    </div>
-                    <div className="p-4 bg-primary/10 rounded-xl">
-                      <p className="text-sm text-muted-foreground mb-1">This Month</p>
-                      <p className="text-2xl font-bold text-primary">{formatCurrency(revenueAnalytics.monthlyRevenue)}</p>
-                    </div>
-                  </div>
-                  <div className="p-4 bg-muted/30 rounded-xl">
-                    <p className="text-sm text-muted-foreground mb-1">Average Booking Value</p>
-                    <p className="text-2xl font-bold">{formatCurrency(revenueAnalytics.averageBookingValue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium mb-3">Revenue by Status</p>
-                    <div className="space-y-2">
-                      {revenueAnalytics.revenueByStatus.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-                          <span className="text-sm capitalize">{item.status}</span>
-                          <span className="font-semibold text-sm">{formatCurrency(item.revenue)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No revenue data available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className="font-dm text-[12px] text-brand-muted truncate max-w-[100px] block">{b.church}</span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className="font-mono text-[12px] text-brand-ink">{formatCurrency(b.amount)}</span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={b.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Popular Destinations */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Popular Destinations</CardTitle>
-              <Button variant="ghost" size="sm">View All</Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {topChurches.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No destinations yet</p>
-                </div>
-              ) : (
-                topChurches.map((church, index) => (
-                  <div key={index} className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/50 transition-colors">
-                    <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                      <MapPin className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{church.name}</p>
-                      <p className="text-xs text-muted-foreground">{church.region} Region</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm">{church.bookings.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">trips</p>
-                    </div>
-                  </div>
-                ))
+        {/* ── Pending approvals ── */}
+        <div className="bg-white border border-[rgba(245,168,0,0.15)] rounded-[14px] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[rgba(245,168,0,0.12)]">
+            <div className="flex items-center gap-2">
+              <h2 className="font-syne font-bold text-[14px] text-brand-ink">Pending approvals</h2>
+              {pendingApprovals.length > 0 && (
+                <span className="font-mono text-[11px] bg-[rgba(226,75,74,0.1)] text-danger px-2 py-0.5 rounded-full font-medium">
+                  {pendingApprovals.length}
+                </span>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            <button className="font-dm text-[12px] text-brand-muted hover:text-brand-ink transition-colors">View all →</button>
+          </div>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <button className="p-6 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all text-left group">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:bg-emerald-500/20 transition-colors">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                </div>
-                <p className="font-semibold">Approve Providers</p>
-                <p className="text-sm text-muted-foreground mt-1">Review pending</p>
-              </button>
-              
-              <button className="p-6 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all text-left group">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
-                  <Clock className="h-6 w-6 text-amber-500" />
-                </div>
-                <p className="font-semibold">Process Payouts</p>
-                <p className="text-sm text-muted-foreground mt-1">View pending</p>
-              </button>
-              
-              <button className="p-6 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all text-left group">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
-                  <MapPin className="h-6 w-6 text-blue-500" />
-                </div>
-                <p className="font-semibold">Add Destination</p>
-                <p className="text-sm text-muted-foreground mt-1">Expand catalog</p>
-              </button>
-              
-              <button className="p-6 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all text-left group">
-                <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mb-4 group-hover:bg-red-500/20 transition-colors">
-                  <XCircle className="h-6 w-6 text-red-500" />
-                </div>
-                <p className="font-semibold">Support Tickets</p>
-                <p className="text-sm text-muted-foreground mt-1">View open</p>
-              </button>
-            </CardContent>
-          </Card>
+          {pendingApprovals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3">
+              <div className="w-14 h-14 rounded-full bg-[rgba(245,168,0,0.08)] flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-brand-gold" />
+              </div>
+              <p className="font-syne font-bold text-[15px] text-brand-ink">All clear</p>
+              <p className="font-dm text-[13px] text-brand-muted">No pending approvals</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px]">
+                <thead>
+                  <tr>
+                    {["Tour name", "Provider", "Submitted", "Category", ""].map((h) => (
+                      <th key={h} className="text-left px-5 py-2.5 font-dm font-medium text-[10px] uppercase tracking-[0.08em] text-brand-muted">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingApprovals.map((item, i) => (
+                    <tr key={i} className="border-t border-[rgba(245,168,0,0.06)] hover:bg-[rgba(245,168,0,0.02)] transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-brand-gold shrink-0" />
+                          <span className="font-syne font-bold text-[13px] text-brand-ink">{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="font-dm text-[12px] text-brand-muted">{item.region}</span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="font-dm text-[12px] text-brand-muted">Today</span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FAEEDA] text-[#854F0B]">Cultural</span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <button className="h-[30px] px-3 rounded-[6px] bg-brand-gold text-brand-ink font-dm font-medium text-[12px] hover:bg-brand-gold-light transition-colors">
+                            Approve
+                          </button>
+                          <button className="h-[30px] px-3 rounded-[6px] bg-[rgba(226,75,74,0.08)] text-danger font-dm font-medium text-[12px] hover:bg-[rgba(226,75,74,0.15)] transition-colors">
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+
+        {/* ── Revenue analytics ── */}
+        {revenueAnalytics && (
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[
+              { label: "Total revenue", value: formatCurrency(revenueAnalytics.totalRevenue), sub: "All time" },
+              { label: "This month", value: formatCurrency(revenueAnalytics.monthlyRevenue), sub: "vs last month", gold: true },
+              { label: "Avg booking value", value: formatCurrency(revenueAnalytics.averageBookingValue), sub: "Per transaction" },
+            ].map((card, i) => (
+              <div key={i} className={`rounded-[14px] p-4 border ${card.gold ? "border-brand-gold bg-[rgba(245,168,0,0.06)]" : "border-[rgba(245,168,0,0.15)] bg-brand-cream"}`}>
+                <p className="font-dm text-[12px] text-brand-muted mb-1">{card.label}</p>
+                <p className={`font-mono font-medium text-[20px] ${card.gold ? "text-brand-gold-dark" : "text-brand-ink"}`}>{card.value}</p>
+                <p className="font-dm text-[11px] text-brand-muted/70 mt-1">{card.sub}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
-
