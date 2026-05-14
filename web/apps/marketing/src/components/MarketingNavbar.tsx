@@ -5,19 +5,54 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, Menu, X } from "lucide-react";
+import { Globe, Menu, Smartphone, X } from "lucide-react";
+import { AppDownloadButton } from "@/components/AppDownloadButton";
 
-export const NAV_LINKS = [
-  { label: "Tours", href: "/tours" },
-  { label: "Destinations", href: "/destinations" },
-  { label: "Guides", href: "/guides" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
-] as const;
+type NavItem = { label: string; href: string };
+
+function navLinks(): NavItem[] {
+  return [
+    { label: "Tours", href: "/tours" },
+    { label: "Destinations", href: "/destinations" },
+    { label: "Provider Portal", href: "/providers" },
+    { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
+  ];
+}
+
+function isExternalHref(href: string) {
+  return href.startsWith("http://") || href.startsWith("https://");
+}
 
 function navLinkActive(pathname: string, href: string) {
+  if (isExternalHref(href)) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function NavAnchor({
+  href,
+  children,
+  className,
+  onClick,
+}: {
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  if (isExternalHref(href)) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className} onClick={onClick}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className} onClick={onClick}>
+      {children}
+    </Link>
+  );
 }
 
 function BoatLogo({ size = 34, className = "" }: { size?: number; className?: string }) {
@@ -84,29 +119,26 @@ export function MarketingNavbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-7">
-            {NAV_LINKS.map((l) => {
+            {navLinks().map((l) => {
               const active = navLinkActive(pathname, l.href);
+              const cls = `text-[13px] font-medium transition-colors relative group ${
+                active
+                  ? solid
+                    ? "text-brand-gold"
+                    : "text-brand-gold-light"
+                  : solid
+                    ? "text-brand-muted hover:text-brand-ink"
+                    : "text-white/80 hover:text-white"
+              }`;
               return (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className={`text-[13px] font-medium transition-colors relative group ${
-                    active
-                      ? solid
-                        ? "text-brand-gold"
-                        : "text-brand-gold-light"
-                      : solid
-                        ? "text-brand-muted hover:text-brand-ink"
-                        : "text-white/80 hover:text-white"
-                  }`}
-                >
+                <NavAnchor key={l.href} href={l.href} className={cls}>
                   {l.label}
                   <span
                     className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-[1.5px] rounded-full transition-all duration-200 bg-brand-gold ${
                       active ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-full group-hover:opacity-100"
                     }`}
                   />
-                </Link>
+                </NavAnchor>
               );
             })}
           </div>
@@ -123,16 +155,16 @@ export function MarketingNavbar() {
               <Globe className="h-3.5 w-3.5" />
               {langLabel}
             </button>
-            <Link href="/providers">
-              <button
-                type="button"
-                className={`px-4 py-2 rounded-[10px] text-[13px] font-medium border-[1.5px] transition-all ${
-                  solid ? "border-brand-gold text-brand-gold hover:bg-[rgba(245,168,0,0.08)]" : "border-white/28 text-white hover:bg-white/7"
-                }`}
-              >
-                List your tours
-              </button>
-            </Link>
+            <AppDownloadButton
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[10px] text-[13px] font-medium transition-all ${
+                solid
+                  ? "bg-brand-gold/15 text-brand-ink border border-brand-gold/35 hover:bg-brand-gold/25"
+                  : "bg-white/12 text-white border border-white/22 hover:bg-white/18"
+              }`}
+            >
+              <Smartphone className="h-4 w-4 shrink-0 opacity-90" />
+              Download the app
+            </AppDownloadButton>
             <Link href="/login">
               <button
                 type="button"
@@ -177,8 +209,8 @@ export function MarketingNavbar() {
               </button>
             </div>
             <nav className="space-y-1 flex-1">
-              {NAV_LINKS.map((l) => (
-                <Link
+              {navLinks().map((l) => (
+                <NavAnchor
                   key={l.href}
                   href={l.href}
                   onClick={() => setMobileMenuOpen(false)}
@@ -187,15 +219,17 @@ export function MarketingNavbar() {
                   }`}
                 >
                   {l.label}
-                </Link>
+                </NavAnchor>
               ))}
             </nav>
             <div className="pt-8 flex flex-col gap-3">
-              <Link href="/providers" onClick={() => setMobileMenuOpen(false)}>
-                <button type="button" className="w-full py-3 rounded-[10px] border-[1.5px] border-brand-gold text-brand-gold font-medium text-[15px]">
-                  List your tours
-                </button>
-              </Link>
+              <AppDownloadButton
+                className="w-full py-3 rounded-[10px] bg-brand-gold text-brand-ink font-medium text-[15px] inline-flex items-center justify-center gap-2 shadow-btn"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Smartphone className="h-5 w-5" />
+                Download the app
+              </AppDownloadButton>
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                 <button type="button" className="w-full py-3 rounded-[10px] bg-brand-gold text-brand-ink font-medium text-[15px]">
                   Sign in

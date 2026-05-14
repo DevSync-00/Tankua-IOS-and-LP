@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Building2, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
+import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -60,22 +62,16 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A1A2F] via-[#0d2341] to-[#0A1A2F] flex">
-      {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative p-12 flex-col justify-between">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='%23D4A017' fill-opacity='0.5'/%3E%3C/svg%3E")`,
-          backgroundSize: "60px 60px",
-        }} />
+    <div className="relative min-h-screen bg-brand-dark flex overflow-hidden">
+      <AuthHeroBackdrop />
 
+      {/* Left side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-[1] p-12 flex-col justify-between">
         <div className="relative">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-2xl">T</span>
-            </div>
+            <Image src="/icon.jpg" alt="Tankua" width={48} height={48} className="rounded-xl object-contain shadow-lg shadow-black/20" />
             <div>
-              <span className="text-2xl font-bold text-white">Tankua</span>
+              <span className="text-2xl font-bold text-white font-syne">Tankua</span>
               <span className="block text-sm text-white/50">Providers Portal</span>
             </div>
           </Link>
@@ -96,19 +92,17 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="relative z-[1] flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg mb-4">
-              <span className="text-white font-bold text-3xl">T</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white">Providers Portal</h1>
+            <Image src="/icon.jpg" alt="Tankua" width={64} height={64} className="mx-auto rounded-2xl object-contain shadow-lg mb-4" />
+            <h1 className="text-2xl font-bold text-white font-syne">Providers Portal</h1>
           </div>
 
-          <Card className="bg-white p-8">
+          <Card className="bg-white p-8 shadow-card border border-[rgba(245,168,0,0.15)]">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-[#0A1A2F]">Forgot Password?</h2>
+              <h2 className="text-2xl font-bold text-brand-ink font-syne">Forgot Password?</h2>
               <p className="text-muted-foreground mt-2">
                 {success 
                   ? "Check your email for reset instructions"

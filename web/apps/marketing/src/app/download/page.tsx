@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Smartphone, Download, QrCode, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button, Card, Badge } from "@tankua/ui";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-stores";
 
 const features = [
   "Browse 250+ tours and destinations",
@@ -41,7 +42,7 @@ export default function DownloadPage() {
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <a 
-                  href="https://apps.apple.com/app/tankua" 
+                  href={APP_STORE_URL} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-block"
@@ -54,7 +55,7 @@ export default function DownloadPage() {
                   </Button>
                 </a>
                 <a 
-                  href="https://play.google.com/store/apps/details?id=com.tankua.app" 
+                  href={PLAY_STORE_URL} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-block"

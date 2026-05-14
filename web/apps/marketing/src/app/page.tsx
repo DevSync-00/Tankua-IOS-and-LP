@@ -5,12 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import {
-  MapPin, Calendar, Users, Search, ArrowRight, ChevronRight,
-  Instagram, Youtube, Star,
+  MapPin, Calendar, Users, Search, ArrowRight,
+  Instagram, Youtube, Star, Smartphone,
 } from "lucide-react";
 import { getFeaturedTours } from "@/lib/queries";
 import { MARKETING_DESTINATIONS } from "@/lib/marketing-destinations";
 import { marketingTourCardImage } from "@/lib/marketing-tour-images";
+import { AppDownloadButton } from "@/components/AppDownloadButton";
 
 // ─── Types ───────────────────────────────────────────────
 type TourItem = {
@@ -79,10 +80,6 @@ function FoldCorner() {
 }
 
 // ─── Animation variants ───────────────────────────────────
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut", delay: i * 0.07 } }),
-};
 
 function FadeUpSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef(null);
@@ -171,7 +168,7 @@ export default function LandingPage() {
 
               {/* Trust pills */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-                className="flex flex-wrap gap-2 mb-8">
+                className="flex flex-wrap gap-2">
                 {stats.map((s) => (
                   <span key={s.label} className="px-3 py-1.5 rounded-full text-[12px] text-white/70 border border-white/12"
                     style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -180,22 +177,6 @@ export default function LandingPage() {
                 ))}
               </motion.div>
 
-              {/* CTAs */}
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }}
-                className="flex flex-wrap gap-3">
-                <Link href="/tours">
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 h-[42px] px-5 rounded-[10px] bg-brand-gold text-brand-ink font-medium text-[14px] shadow-btn">
-                    Explore tours <ArrowRight className="h-4 w-4" />
-                  </motion.button>
-                </Link>
-                <Link href="/providers">
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-2 h-[42px] px-5 rounded-[10px] border-[1.5px] border-white/28 text-white font-medium text-[14px] hover:bg-white/7 transition-colors">
-                    Become a guide
-                  </motion.button>
-                </Link>
-              </motion.div>
             </div>
           </div>
         </div>
@@ -416,7 +397,7 @@ export default function LandingPage() {
                   items: [
                     { label: "Tours", href: "/tours" },
                     { label: "Destinations", href: "/destinations" },
-                    { label: "Guides", href: "/guides" },
+                    { label: "Provider Portal", href: "/providers" },
                   ],
                 },
                 {
@@ -424,7 +405,7 @@ export default function LandingPage() {
                   items: [
                     { label: "About", href: "/about" },
                     { label: "How it works", href: "/how-it-works" },
-                    { label: "For providers", href: "/providers" },
+                    { label: "Terms", href: "/terms" },
                   ],
                 },
                 {
@@ -441,9 +422,20 @@ export default function LandingPage() {
                   <ul className="space-y-2">
                     {col.items.map(({ label, href }) => (
                       <li key={label}>
-                        <Link href={href} className="font-dm text-[13px] text-white/60 hover:text-white transition-colors">
-                          {label}
-                        </Link>
+                        {href.startsWith("http://") || href.startsWith("https://") ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-dm text-[13px] text-white/60 hover:text-white transition-colors"
+                          >
+                            {label}
+                          </a>
+                        ) : (
+                          <Link href={href} className="font-dm text-[13px] text-white/60 hover:text-white transition-colors">
+                            {label}
+                          </Link>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -453,12 +445,12 @@ export default function LandingPage() {
 
             {/* CTA + lang */}
             <div className="space-y-4">
-              <Link href="/providers">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                  className="w-full h-[42px] rounded-[10px] bg-brand-gold text-brand-ink font-medium text-[14px]">
-                  List your tours
-                </motion.button>
-              </Link>
+              <AppDownloadButton
+                className="w-full h-[42px] rounded-[10px] border border-white/22 bg-white/[0.06] text-white font-medium text-[14px] hover:bg-white/12 transition-colors inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Smartphone className="h-4 w-4 shrink-0 opacity-90" />
+                Download the app
+              </AppDownloadButton>
               <div className="flex gap-2">
                 {["EN", "አማ"].map((lang) => (
                   <button key={lang} onClick={() => setLangLabel(lang)}

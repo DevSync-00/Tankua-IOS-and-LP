@@ -26,6 +26,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
+    "/destinations/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/destinations/page.js"
+    ],
     "/providers/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",

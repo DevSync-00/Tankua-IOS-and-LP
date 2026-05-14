@@ -3,29 +3,26 @@
 import Link from "next/link";
 import { CheckCircle, Mail, Clock, ArrowRight } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
+import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
 
 export default function RegistrationSuccessPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A1A2F] via-[#0d2341] to-[#0A1A2F] flex items-center justify-center p-4">
-      {/* Background pattern */}
-      <div className="fixed inset-0 opacity-10 pointer-events-none" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='%23D4A017' fill-opacity='0.5'/%3E%3C/svg%3E")`,
-        backgroundSize: "60px 60px",
-      }} />
+    <div className="relative min-h-screen bg-brand-dark flex items-center justify-center p-4 overflow-hidden">
+      <AuthHeroBackdrop />
 
-      <div className="relative max-w-md w-full text-center">
+      <div className="relative z-[1] max-w-md w-full text-center">
         {/* Success Icon */}
         <div className="w-24 h-24 mx-auto mb-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-bounce">
           <CheckCircle className="h-12 w-12 text-white" />
         </div>
 
-        <h1 className="text-3xl font-bold text-white mb-4">Registration Submitted!</h1>
+        <h1 className="text-3xl font-bold text-white mb-4 font-syne">Registration Submitted!</h1>
         <p className="text-lg text-white/70 mb-8">
           Thank you for registering your company with Tankua. Your application is now under review.
         </p>
 
-        <Card className="bg-white p-6 mb-8">
-          <h2 className="font-semibold text-[#0A1A2F] mb-4">What happens next?</h2>
+        <Card className="bg-white p-6 mb-8 shadow-card border border-[rgba(245,168,0,0.15)]">
+          <h2 className="font-semibold text-brand-ink mb-4 font-syne">What happens next?</h2>
           
           <div className="space-y-4 text-left">
             <div className="flex items-start gap-4">
@@ -33,7 +30,7 @@ export default function RegistrationSuccessPage() {
                 <Mail className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="font-medium text-[#0A1A2F]">Check your email</p>
+                <p className="font-medium text-brand-ink">Check your email</p>
                 <p className="text-sm text-muted-foreground">
                   We've sent a confirmation email with your application details.
                 </p>
@@ -45,7 +42,7 @@ export default function RegistrationSuccessPage() {
                 <Clock className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="font-medium text-[#0A1A2F]">Verification in progress</p>
+                <p className="font-medium text-brand-ink">Verification in progress</p>
                 <p className="text-sm text-muted-foreground">
                   Our team will review your documents within 1-2 business days.
                 </p>
@@ -57,7 +54,7 @@ export default function RegistrationSuccessPage() {
                 <CheckCircle className="h-5 w-5 text-emerald-600" />
               </div>
               <div>
-                <p className="font-medium text-[#0A1A2F]">Get approved</p>
+                <p className="font-medium text-brand-ink">Get approved</p>
                 <p className="text-sm text-muted-foreground">
                   Once approved, you'll receive login credentials to access the Providers Portal.
                 </p>
@@ -83,7 +80,7 @@ export default function RegistrationSuccessPage() {
 
         <p className="text-white/40 text-sm mt-8">
           Questions? Contact us at{" "}
-          <a href="mailto:support@tankua.et" className="text-[#D4A017] hover:underline">
+          <a href="mailto:support@tankua.et" className="text-brand-gold hover:underline font-medium">
             support@tankua.et
           </a>
         </p>

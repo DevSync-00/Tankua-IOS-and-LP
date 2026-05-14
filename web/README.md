@@ -7,9 +7,9 @@ This directory contains the web applications for Tankua - a complete ecosystem f
 ```
 web/
 ├── apps/
-│   ├── marketing/     # Marketing website (tankua.et) - Port 3000
-│   ├── admin/         # Admin Dashboard (admin.tankua.et) - Port 3001
-│   └── provider/      # Provider Portal (provider.tankua.et) - Port 3002
+│   ├── marketing/     # Marketing website (tankua.co) - Port 3000
+│   ├── admin/         # Admin Dashboard (admin.tankua.co) - Port 3001
+│   └── provider/      # Provider Portal (provider.tankua.co) - Port 3002
 ├── packages/
 │   └── ui/            # Shared UI components
 ├── package.json       # Root package.json with workspaces
@@ -161,9 +161,9 @@ Recommended deployment on Vercel:
 
 ### Custom Domains
 
-- `tankua.et` → Marketing
-- `admin.tankua.et` → Admin Dashboard
-- `provider.tankua.et` → Provider Portal
+- `tankua.co` → Marketing
+- `admin.tankua.co` → Admin Dashboard
+- `provider.tankua.co` → Provider Portal
 
 ## 📖 Documentation
 

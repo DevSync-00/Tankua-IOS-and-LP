@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button, Card, Badge } from "@tankua/ui";
 import { supabase } from "@/lib/supabase";
+import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
 
 const steps = [
   { id: 1, title: "Company Info", description: "Basic details" },
@@ -275,23 +277,17 @@ Description: ${formData.description || "N/A"}
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A1A2F] via-[#0d2341] to-[#0A1A2F] py-12 px-4">
-      {/* Background pattern */}
-      <div className="fixed inset-0 opacity-10 pointer-events-none" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='%23D4A017' fill-opacity='0.5'/%3E%3C/svg%3E")`,
-        backgroundSize: "60px 60px",
-      }} />
+    <div className="relative min-h-screen bg-brand-dark py-12 px-4 overflow-hidden">
+      <AuthHeroBackdrop />
 
-      <div className="max-w-2xl mx-auto relative">
+      <div className="max-w-2xl mx-auto relative z-[1]">
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-2xl">T</span>
-            </div>
-            <span className="text-2xl font-bold text-white">Tankua</span>
+            <Image src="/icon.jpg" alt="Tankua" width={48} height={48} className="rounded-xl object-contain shadow-lg shadow-black/20" />
+            <span className="text-2xl font-bold text-white font-syne">Tankua</span>
           </Link>
-          <h1 className="text-3xl font-bold text-white mb-2">Register Your Company</h1>
+          <h1 className="text-3xl font-bold text-white mb-2 font-syne">Register Your Company</h1>
           <p className="text-white/60">Join Ethiopia's leading pilgrimage platform</p>
         </div>
 
@@ -302,7 +298,7 @@ Description: ${formData.description || "N/A"}
               <div className="flex flex-col items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
                   currentStep >= step.id 
-                    ? "bg-[#D4A017] text-[#0A1A2F]" 
+                    ? "bg-brand-gold text-brand-ink" 
                     : "bg-white/10 text-white/50"
                 }`}>
                   {currentStep > step.id ? (
@@ -320,7 +316,7 @@ Description: ${formData.description || "N/A"}
               </div>
               {index < steps.length - 1 && (
                 <div className={`w-8 sm:w-16 h-0.5 mx-2 sm:mx-4 transition-colors ${
-                  currentStep > step.id ? "bg-[#D4A017]" : "bg-white/10"
+                  currentStep > step.id ? "bg-brand-gold" : "bg-white/10"
                 }`} />
               )}
             </div>
@@ -328,7 +324,7 @@ Description: ${formData.description || "N/A"}
         </div>
 
         {/* Form Card */}
-        <Card className="bg-white p-4 sm:p-8">
+        <Card className="bg-white p-4 sm:p-8 shadow-card border border-[rgba(245,168,0,0.15)]">
           <form onSubmit={handleSubmit}>
             {error && (
               <div className="flex items-center gap-2 p-4 mb-6 bg-red-50 border border-red-200 rounded-xl text-red-600">
@@ -340,7 +336,7 @@ Description: ${formData.description || "N/A"}
             {/* Step 1: Company Info */}
             {currentStep === 1 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-[#0A1A2F] mb-6">Company Information</h2>
+                <h2 className="text-xl font-semibold text-brand-ink font-syne mb-6">Company Information</h2>
                 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
@@ -426,7 +422,7 @@ Description: ${formData.description || "N/A"}
             {/* Step 2: Contact Info */}
             {currentStep === 2 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-[#0A1A2F] mb-6">Contact Information</h2>
+                <h2 className="text-xl font-semibold text-brand-ink font-syne mb-6">Contact Information</h2>
                 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
@@ -525,7 +521,7 @@ Description: ${formData.description || "N/A"}
             {/* Step 3: Documents */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-[#0A1A2F] mb-6">Verification Documents</h2>
+                <h2 className="text-xl font-semibold text-brand-ink font-syne mb-6">Verification Documents</h2>
                 
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
                   <p className="text-sm text-amber-800">

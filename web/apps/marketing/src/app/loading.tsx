@@ -1,13 +1,30 @@
+/** Route-level suspense fallback — paired with Tankua sand / gold palette, no branding mark. */
 export default function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#F8F6F0] to-white">
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-          <span className="text-white font-bold text-2xl">T</span>
+    <main className="relative min-h-[100dvh] flex flex-col items-center justify-center bg-brand-sand px-6">
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.55]"
+        aria-hidden
+        style={{
+          background:
+            "radial-gradient(ellipse 75% 50% at 50% -5%, rgba(245,168,0,0.12), transparent 52%), radial-gradient(ellipse 50% 38% at 100% 100%, rgba(26,15,10,0.05), transparent 48%)",
+        }}
+      />
+
+      <div className="relative flex flex-col items-center gap-5">
+        <div
+          className="relative h-11 w-11 shrink-0"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading page"
+        >
+          <span className="absolute inset-0 rounded-full border-[2px] border-brand-gold/[0.15]" aria-hidden />
+          <span className="absolute inset-0 rounded-full border-[2px] border-transparent border-t-brand-gold border-r-brand-gold/35 animate-spin motion-reduce:animate-none [animation-duration:0.92s]" />
         </div>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4A017] mx-auto"></div>
-        <p className="mt-4 text-[#0A1A2F]/60">Loading...</p>
+        <p className="font-dm text-[11px] font-medium uppercase tracking-[0.22em] text-brand-muted">
+          Loading
+        </p>
       </div>
-    </div>
+    </main>
   );
 }

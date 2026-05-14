@@ -8,9 +8,12 @@ const normalizeBaseUrl = (value: string | undefined, fallback: string) => {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
-export const providerPortalUrl = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_PROVIDER_URL,
-  DEFAULT_PROVIDER_URL
+/** Production cutover: legacy env may still point at provider.tankua.et */
+const coerceProviderProductionHost = (url: string) =>
+  url.replace(/^https?:\/\/provider\.tankua\.et(?=$|[/:])/i, "https://provider.tankua.co");
+
+export const providerPortalUrl = coerceProviderProductionHost(
+  normalizeBaseUrl(process.env.NEXT_PUBLIC_PROVIDER_URL, DEFAULT_PROVIDER_URL)
 );
 
 export const providerRegisterUrl = `${providerPortalUrl}/register`;
