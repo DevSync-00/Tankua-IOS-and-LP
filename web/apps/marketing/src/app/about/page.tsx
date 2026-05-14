@@ -16,16 +16,16 @@ import { Button, Card, Badge } from "@tankua/ui";
 
 const team = [
   {
-    name: "Abebe Tadesse",
+    name: "Bereket Birhanu Kinfu",
     role: "Founder & CEO",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80",
-    bio: "Ethiopian tech entrepreneur with a passion for cultural preservation and tourism innovation.",
+    bio: "Building technology that connects travelers with Ethiopia’s guides and providers.",
   },
   {
-    name: "Sara Hailu",
-    role: "Head of Operations",
+    name: "Abdselam Kedir Nuredin",
+    role: "Co-founder & CTO",
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80",
-    bio: "Former tourism executive with 10+ years of experience in Ethiopian travel industry.",
+    bio: "Focused on scalable products and reliable platforms for Ethiopian tourism.",
   },
   {
     name: "Yohannes Bekele",
