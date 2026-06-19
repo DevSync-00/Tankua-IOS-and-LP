@@ -9,7 +9,8 @@ import { COLORS } from '../config/theme';
 // Auth Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
 import SignInScreen from '../screens/SignInScreen';
-import OTPScreen from '../screens/OTPScreen';
+// [SMS DISABLED] import OTPScreen from '../screens/OTPScreen';
+import TelegramLoginScreen from '../screens/TelegramLoginScreen';
 
 // Main Screens
 import MainTabNavigator from './MainTabNavigator';
@@ -73,12 +74,14 @@ const AppNavigator = () => {
         <>
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="SignIn" component={SignInScreen} />
-          <Stack.Screen name="OTP" component={OTPScreen} />
+          {/* [SMS DISABLED] <Stack.Screen name="OTP" component={OTPScreen} /> */}
+          <Stack.Screen name="TelegramLogin" component={TelegramLoginScreen} />
         </>
       ) : !user ? (
         <>
           <Stack.Screen name="SignIn" component={SignInScreen} />
-          <Stack.Screen name="OTP" component={OTPScreen} />
+          {/* [SMS DISABLED] <Stack.Screen name="OTP" component={OTPScreen} /> */}
+          <Stack.Screen name="TelegramLogin" component={TelegramLoginScreen} />
         </>
       ) : (
         <>

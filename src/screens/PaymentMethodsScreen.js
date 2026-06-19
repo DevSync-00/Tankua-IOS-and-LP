@@ -49,11 +49,17 @@ const PaymentMethodsScreen = ({ navigation }) => {
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // Table doesn't exist yet — show empty state, not an error
+      if (error) {
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          setPaymentMethods([]);
+          return;
+        }
+        throw error;
+      }
       setPaymentMethods(data || []);
     } catch (error) {
       console.error('Error loading payment methods:', error);
-      Alert.alert('Error', 'Failed to load payment methods');
     } finally {
       setLoading(false);
     }
@@ -95,10 +101,17 @@ const PaymentMethodsScreen = ({ navigation }) => {
           name: formData.name,
           account_number: formData.account_number,
           masked_number: maskedNumber,
-          is_default: paymentMethods.length === 0, // First method is default
+          is_default: paymentMethods.length === 0,
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          Alert.alert('Coming Soon', 'Saved payment methods are not available yet.');
+          setShowAddModal(false);
+          return;
+        }
+        throw error;
+      }
 
       Alert.alert('Success', 'Payment method added successfully');
       setShowAddModal(false);
@@ -112,11 +125,15 @@ const PaymentMethodsScreen = ({ navigation }) => {
   const handleSetDefault = async (id) => {
     try {
       // First, unset all defaults
-      await supabase
+      const { error: unsetError } = await supabase
         .from('saved_payment_methods')
         .update({ is_default: false })
         .eq('user_id', user.id)
         .eq('is_default', true);
+
+      if (unsetError && unsetError.code !== 'PGRST205' && unsetError.code !== '42P01') {
+        throw unsetError;
+      }
 
       // Then set the selected one as default
       const { error } = await supabase
@@ -124,8 +141,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
         .update({ is_default: true })
         .eq('id', id);
 
-      if (error) throw error;
-
+      if (error && error.code !== 'PGRST205' && error.code !== '42P01') throw error;
       loadPaymentMethods();
     } catch (error) {
       console.error('Error setting default:', error);
@@ -149,8 +165,7 @@ const PaymentMethodsScreen = ({ navigation }) => {
                 .update({ is_active: false })
                 .eq('id', id);
 
-              if (error) throw error;
-
+              if (error && error.code !== 'PGRST205' && error.code !== '42P01') throw error;
               loadPaymentMethods();
             } catch (error) {
               console.error('Error deleting payment method:', error);

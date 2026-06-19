@@ -1,24 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
-  Alert,
   TouchableOpacity,
-  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
-import { useAuth } from '../contexts/AuthContext';
 import PaperBoatIcon from '../components/PaperBoatIcon';
-import EthiopiaFlag from '../components/EthiopiaFlag';
 import WavyShape from '../components/WavyShape';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SMS / OTP sign-in is temporarily disabled.
+// The only sign-in method is Telegram Login (see TelegramLoginScreen).
+// To re-enable SMS, uncomment the blocks marked [SMS DISABLED].
+// ─────────────────────────────────────────────────────────────────────────────
+
+/* [SMS DISABLED]
+import { useState } from 'react';
+import { TextInput, Alert, KeyboardAvoidingView } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+import EthiopiaFlag from '../components/EthiopiaFlag';
+*/
+
 const SignInScreen = ({ navigation }) => {
+  /* [SMS DISABLED]
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const { sendOTP } = useAuth();
@@ -38,74 +45,89 @@ const SignInScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
+  */
 
   return (
     <View style={styles.container}>
-      {/* Absolute Background Shapes */}
+      {/* Background shapes */}
       <View style={styles.topWaveContainer}>
-        <WavyShape position="top" color="#FFB800" /> 
+        <WavyShape position="top" color="#FFB800" />
       </View>
       <View style={styles.bottomWaveContainer}>
         <WavyShape position="bottom" color="#FFB800" />
       </View>
 
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView
-          style={styles.keyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        {/* Back button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
         >
-          {/* Back button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <View style={styles.backButtonCircle}>
-              <Ionicons name="chevron-back" size={22} color="#000" />
+          <View style={styles.backButtonCircle}>
+            <Ionicons name="chevron-back" size={22} color="#000" />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.content}>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <PaperBoatIcon size={100} color="#FFB800" />
+            <Text style={styles.appName}>Tankua</Text>
+          </View>
+
+          <Text style={styles.heading}>Sign in now</Text>
+          <Text style={styles.subheading}>Please sign in to continue our app</Text>
+
+          {/* ── [SMS DISABLED] Phone input + Sign In button ────────────────
+          <View style={styles.inputWrapper}>
+            <View style={styles.flagSection}>
+              <EthiopiaFlag size={32} />
             </View>
+            <View style={styles.dividerLine} />
+            <TextInput
+              style={styles.input}
+              placeholder="09XXXXXXXX"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+              placeholderTextColor="#A9A9A9"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={handleSignIn}
+            disabled={loading}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.signInButtonText}>
+              {loading ? 'Processing...' : 'Sign In'}
+            </Text>
           </TouchableOpacity>
 
-          <View style={styles.content}>
-            {/* Logo Section */}
-            <View style={styles.logoContainer}>
-              <PaperBoatIcon size={100} color="#FFB800" />
-              <Text style={styles.appName}>Tankua</Text>
-            </View>
+          <Text style={styles.termsText}>*Terms and conditions apply</Text>
 
-            {/* Headers */}
-            <Text style={styles.heading}>Sign in now</Text>
-            <Text style={styles.subheading}>Please sign in to continue our app</Text>
-
-            {/* Input styled like the image */}
-            <View style={styles.inputWrapper}>
-              <View style={styles.flagSection}>
-                <EthiopiaFlag size={32} />
-              </View>
-              <View style={styles.divider} />
-              <TextInput
-                style={styles.input}
-                placeholder="09XXXXXXXX"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-                placeholderTextColor="#A9A9A9"
-              />
-            </View>
-
-            {/* Main Sign In Button */}
-            <TouchableOpacity
-              style={styles.signInButton}
-              onPress={handleSignIn}
-              disabled={loading}
-              activeOpacity={0.9}
-            >
-              <Text style={styles.signInButtonText}>
-                {loading ? 'Processing...' : 'Sign In'}
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={styles.termsText}>*Terms and conditions apply</Text>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerHRule} />
+            <Text style={styles.dividerText}>or continue with</Text>
+            <View style={styles.dividerHRule} />
           </View>
-        </KeyboardAvoidingView>
+          ── end SMS DISABLED ── */}
+
+          {/* Telegram — primary (and currently only) sign-in method */}
+          <TouchableOpacity
+            style={styles.telegramButton}
+            onPress={() => navigation.navigate('TelegramLogin')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.telegramIconCircle}>
+              <Text style={styles.telegramIconText}>✈</Text>
+            </View>
+            <Text style={styles.telegramButtonText}>Continue with Telegram</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.termsText}>*Terms and conditions apply</Text>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -115,9 +137,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  keyboardView: {
-    flex: 1,
   },
   topWaveContainer: {
     position: 'absolute',
@@ -150,7 +169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 30,
-    marginTop: -40, // Adjust to balance with logo height
+    marginTop: -40,
   },
   logoContainer: {
     alignItems: 'center',
@@ -174,48 +193,54 @@ const styles = StyleSheet.create({
     color: '#8E8E8E',
     marginBottom: 40,
   },
-  inputWrapper: {
+  // ── [SMS DISABLED] styles kept for easy re-enable ──────────────────────
+  // inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7F8FA',
+  //   borderRadius: 15, width: '100%', height: 65, marginBottom: 30, overflow: 'hidden' },
+  // flagSection: { paddingHorizontal: 15, justifyContent: 'center' },
+  // dividerLine: { width: 1, height: '60%', backgroundColor: '#E0E0E0' },
+  // input: { flex: 1, fontSize: 18, paddingHorizontal: 15, color: '#000' },
+  // signInButton: { backgroundColor: '#FFB800', width: '100%', height: 60, borderRadius: 15,
+  //   justifyContent: 'center', alignItems: 'center', marginBottom: 80,
+  //   elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1, shadowRadius: 4 },
+  // signInButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  // dividerRow: { flexDirection: 'row', alignItems: 'center', width: '100%',
+  //   marginTop: 8, marginBottom: 20 },
+  // dividerHRule: { flex: 1, height: 1, backgroundColor: '#E0E0E0' },
+  // dividerText: { marginHorizontal: 12, fontSize: 13, color: '#8E8E8E' },
+  // ── end SMS DISABLED styles ─────────────────────────────────────────────
+  telegramButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F8FA', // Light gray background from image
-    borderRadius: 15,
-    width: '100%',
-    height: 65,
-    marginBottom: 30,
-    overflow: 'hidden',
-  },
-  flagSection: {
-    paddingHorizontal: 15,
     justifyContent: 'center',
-  },
-  divider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: '#E0E0E0',
-  },
-  input: {
-    flex: 1,
-    fontSize: 18,
-    paddingHorizontal: 15,
-    color: '#000',
-  },
-  signInButton: {
-    backgroundColor: '#FFB800', // Matches the yellow in the image
     width: '100%',
     height: 60,
     borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 80,
+    backgroundColor: '#229ED9',
+    gap: 10,
+    marginBottom: 24,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  signInButtonText: {
+  telegramIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramIconText: {
+    fontSize: 16,
     color: '#FFFFFF',
-    fontSize: 18,
+    transform: [{ rotate: '30deg' }],
+  },
+  telegramButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '700',
   },
   termsText: {

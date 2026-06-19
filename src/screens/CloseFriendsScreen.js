@@ -37,8 +37,7 @@ const CloseFriendsScreen = ({ navigation }) => {
 
     try {
       setLoading(true);
-      
-      // Get close friends with user details
+
       const { data, error } = await supabase
         .from('close_friends')
         .select(`
@@ -55,7 +54,14 @@ const CloseFriendsScreen = ({ navigation }) => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // Table doesn't exist yet — treat as empty, not an error
+      if (error) {
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          setFriends([]);
+          return;
+        }
+        throw error;
+      }
 
       // Get trip counts for each friend
       const friendsWithTrips = await Promise.all(
@@ -83,7 +89,10 @@ const CloseFriendsScreen = ({ navigation }) => {
       setFriends(friendsWithTrips.filter(Boolean));
     } catch (error) {
       console.error('Error loading friends:', error);
-      Alert.alert('Error', 'Failed to load friends');
+      // Only show alert for unexpected errors, not missing table
+      if (error.code !== 'PGRST205' && error.code !== '42P01') {
+        Alert.alert('Error', 'Failed to load friends');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -148,7 +157,7 @@ const CloseFriendsScreen = ({ navigation }) => {
         .select('id')
         .eq('user_id', user.id)
         .eq('friend_user_id', friendUser.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         Alert.alert('Already Added', 'This user is already in your close friends list');
@@ -163,7 +172,13 @@ const CloseFriendsScreen = ({ navigation }) => {
           friend_user_id: friendUser.id,
         });
 
-      if (addError) throw addError;
+      if (addError) {
+        if (addError.code === 'PGRST205' || addError.code === '42P01') {
+          Alert.alert('Coming Soon', 'Close Friends is not set up yet. Check back later!');
+          return;
+        }
+        throw addError;
+      }
 
       Alert.alert('Success', `${friendUser.name || 'Friend'} added to your close friends!`);
       await loadFriends();

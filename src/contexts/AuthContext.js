@@ -252,10 +252,106 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithTelegram = async (telegramAuthData) => {
+    try {
+      const supabaseUrl =
+        process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://dotjlikaurcjwabarqcy.supabase.co';
+      const supabaseAnonKey =
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvdGpsaWthdXJjandhYmFycWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwODY5MTQsImV4cCI6MjA4MDY2MjkxNH0.zZ0GeY_sV0TtP9jGVQRKPoXoDBCSpyNDlRKruAisa9A';
+
+      // ── Security: wipe any existing session BEFORE setting a new one ─────
+      // If we call setSession() while another account's session is still
+      // active, Supabase's onAuthStateChange can fire with stale state and
+      // loadUserProfile() would load the wrong user's data.
+      await supabase.auth.signOut();
+      setUser(null);
+      setIsAdmin(false);
+      await AsyncStorage.removeItem('user');
+      // ─────────────────────────────────────────────────────────────────────
+
+      console.log('[Telegram] Calling edge function with data:', JSON.stringify({
+        ...telegramAuthData,
+        hash: telegramAuthData.hash?.slice(0, 8) + '...',
+      }));
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/telegram-auth`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+          },
+          body: JSON.stringify(telegramAuthData),
+        },
+      );
+
+      const bodyText = await response.text();
+      console.log('[Telegram] Edge function response:', response.status, bodyText);
+
+      let result;
+      try {
+        result = JSON.parse(bodyText);
+      } catch {
+        throw new Error(`Edge function returned non-JSON (HTTP ${response.status}): ${bodyText.slice(0, 200)}`);
+      }
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || `HTTP ${response.status} from edge function`);
+      }
+
+      const { session } = result;
+      if (!session?.access_token) {
+        throw new Error('No session returned from Telegram auth');
+      }
+
+      // ── Belt-and-suspenders: confirm the session belongs to the Telegram
+      //    account that was actually authenticated, not any other account. ──
+      const expectedId = String(telegramAuthData.id);
+      const meta = session.user?.user_metadata;
+      if (meta?.telegram_id && meta.telegram_id !== expectedId) {
+        console.error('[Telegram] SECURITY VIOLATION: session telegram_id', meta.telegram_id, '!== expected', expectedId);
+        throw new Error('Account mismatch detected. Please try signing in again.');
+      }
+
+      console.log('[Telegram] Got session for telegram_id:', expectedId, 'supabase uid:', session.user?.id);
+
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+
+      if (setSessionError) {
+        console.error('[Telegram] setSession error:', setSessionError);
+        throw setSessionError;
+      }
+
+      // Load profile explicitly — onAuthStateChange may fire before the
+      // setSession promise resolves on some Supabase client versions.
+      await loadUserProfile(session.user.id);
+      console.log('[Telegram] Login complete for', expectedId);
+    } catch (error) {
+      // On any failure, always leave a clean logged-out state —
+      // never allow a partial or mismatched session to persist.
+      await supabase.auth.signOut().catch(() => {});
+      setUser(null);
+      setIsAdmin(false);
+      await AsyncStorage.removeItem('user');
+      console.error('[Telegram] loginWithTelegram failed:', error.message);
+      throw new Error(error.message || 'Telegram login failed. Please try again.');
+    }
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
       await AsyncStorage.removeItem('user');
+      // Increment a counter persisted in AsyncStorage so TelegramLoginScreen
+      // knows to remount its WebView and clear the Telegram session cookie.
+      const prev = await AsyncStorage.getItem('webview_reset_key');
+      await AsyncStorage.setItem('webview_reset_key', String((parseInt(prev || '0', 10) + 1)));
       setUser(null);
       setIsAdmin(false);
     } catch (error) {
@@ -287,6 +383,7 @@ export const AuthProvider = ({ children }) => {
         isAdmin,
         sendOTP,
         verifyOTP,
+        loginWithTelegram,
         logout,
         updateProfile,
       }}

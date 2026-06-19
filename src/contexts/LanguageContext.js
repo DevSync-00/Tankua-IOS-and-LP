@@ -13,7 +13,7 @@ export const useLanguage = () => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('am'); // Default to Amharic
+  const [language, setLanguage] = useState('en'); // Default to English
 
   useEffect(() => {
     loadLanguage();
