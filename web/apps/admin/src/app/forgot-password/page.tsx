@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowLeft, CheckCircle, Mail, Shield } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
+import { sendAdminPasswordReset } from "@/lib/auth";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -18,29 +19,7 @@ export default function ForgotPasswordPage() {
     setSuccess(false);
 
     try {
-      const { supabase } = await import("@/lib/supabase");
-      const emailLower = email.trim().toLowerCase();
-
-      const { data: adminUser } = await supabase
-        .from("admin_users")
-        .select("email, is_active")
-        .eq("email", emailLower)
-        .maybeSingle();
-
-      if (!adminUser || !adminUser.is_active) {
-        setError("No active admin account found with this email address.");
-        return;
-      }
-
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailLower, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (resetError) {
-        setError(resetError.message || "Failed to send reset email.");
-        return;
-      }
-
+      await sendAdminPasswordReset(email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");

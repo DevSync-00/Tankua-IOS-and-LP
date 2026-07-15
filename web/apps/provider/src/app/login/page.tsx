@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, Building2, AlertCircle } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
 import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
+import { signInProvider } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,70 +23,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Import supabase client
-      const { supabase } = await import("@/lib/supabase");
-      
-      const emailLower = email.trim().toLowerCase();
-      
-      if (!emailLower || !password) {
-        setError("Please enter both email and password.");
-        setIsLoading(false);
-        return;
-      }
-      
-      // Attempt to sign in first — provider/RLS checks require an authenticated session
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: emailLower,
-        password,
-      });
-
-      if (authError) {
-        console.error('Auth error details:', authError);
-
-        if (authError.message?.includes('Email not confirmed') || authError.message?.includes('email_not_confirmed')) {
-          setError("Please check your email and confirm your account before logging in. Check your inbox (and spam folder) for a confirmation link.");
-        } else if (
-          authError.message?.includes('Invalid login credentials') ||
-          authError.message?.includes('invalid_credentials') ||
-          authError.status === 400 ||
-          authError.status === 401
-        ) {
-          // Now that auth failed we still have no session, so we can only give a generic message.
-          // Show the most likely scenario for a Providers Portal.
-          setError(
-            "Invalid email or password. If your provider account was recently approved, use 'Forgot Password' to set up your credentials. Contact support if the issue persists."
-          );
-        } else {
-          setError(authError.message || `Login failed (${authError.status ?? 'unknown'}). Please try again or contact support.`);
-        }
-        return;
-      }
-
-      if (data?.user) {
-        // Check if user is a provider
-        const { data: providerUser } = await supabase
-          .from('provider_users')
-          .select('*, provider:providers(*)')
-          .eq('email', emailLower)
-          .single();
-      
-        if (!providerUser) {
-          setError("Access denied. Provider account required. Your account may not be fully set up. Please contact support.");
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Verify provider is active
-        if (providerUser.provider?.status !== 'active') {
-          setError("Your provider account is pending approval. Please wait for admin approval before logging in.");
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Store provider session
-        localStorage.setItem('provider_user', JSON.stringify(providerUser));
-        router.push("/dashboard");
-      }
+      await signInProvider(email, password);
+      router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");
     } finally {
@@ -97,7 +36,6 @@ export default function LoginPage() {
     <div className="relative min-h-screen bg-brand-dark flex overflow-hidden">
       <AuthHeroBackdrop />
 
-      {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative z-[1] p-12 flex-col justify-between">
         <div className="relative">
           <Link href="/" className="flex items-center gap-3">
@@ -124,8 +62,8 @@ export default function LoginPage() {
               "Easy booking management",
               "Fast and secure payouts",
               "Marketing support",
-            ].map((item, index) => (
-              <div key={index} className="flex items-center gap-3 text-white/80">
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3 text-white/80">
                 <div className="w-5 h-5 rounded-full bg-brand-gold flex items-center justify-center">
                   <span className="text-brand-ink text-xs font-bold">✓</span>
                 </div>
@@ -140,10 +78,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right side - Login form */}
       <div className="relative z-[1] flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <Image src="/icon.jpg" alt="Tankua" width={64} height={64} className="mx-auto rounded-2xl object-contain shadow-lg mb-4" />
             <h1 className="text-2xl font-bold text-white font-syne">Providers Portal</h1>
@@ -188,7 +124,7 @@ export default function LoginPage() {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <input
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
+                      placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full h-12 pl-12 pr-12 bg-muted/50 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
@@ -234,4 +170,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

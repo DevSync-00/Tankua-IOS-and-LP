@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Bell, ChevronDown, LogOut, Search } from "lucide-react";
+import { signOutAdmin } from "@/lib/auth";
 
 interface HeaderProps {
   title: string;
@@ -108,7 +109,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
                   <p className="font-dm text-[11px] text-brand-muted mt-0.5">Administrator</p>
                 </div>
                 <div className="py-1">
-                  <button onClick={() => { localStorage.removeItem("admin_user"); window.location.href = "/login"; }}
+                  <button onClick={async () => { await signOutAdmin(); window.location.href = "/login"; }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 font-dm text-[13px] text-danger hover:bg-[rgba(226,75,74,0.05)] transition-colors">
                     <LogOut className="h-4 w-4" /> Sign Out
                   </button>

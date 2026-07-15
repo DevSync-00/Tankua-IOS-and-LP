@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, Shield, AlertCircle } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
 import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
+import { signInAdmin } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,38 +23,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Import supabase client
-      const { supabase } = await import("@/lib/supabase");
-      
-      // Attempt to sign in
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) {
-        setError(authError.message || "Invalid credentials. Please try again.");
-        return;
-      }
-
-      if (data?.user) {
-        // Check if user is admin
-        const { data: adminUser } = await supabase
-          .from('admin_users')
-          .select('*')
-          .eq('email', email)
-          .single();
-
-        if (!adminUser) {
-          setError("Access denied. Admin account required.");
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Store admin session
-        localStorage.setItem('admin_user', JSON.stringify(adminUser));
-        router.push("/dashboard");
-      }
+      await signInAdmin(email, password);
+      router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");
     } finally {

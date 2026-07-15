@@ -10,6 +10,7 @@ import {
   HelpCircle, Gift, X, Shield, FileText, Menu,
 } from "lucide-react";
 import { cn } from "@tankua/ui";
+import { signOutAdmin } from "@/lib/auth";
 
 const navSections = [
   {
@@ -137,7 +138,7 @@ export function Sidebar() {
           </div>
         </div>
         <button
-          onClick={() => { localStorage.removeItem("admin_user"); window.location.href = "/login"; }}
+          onClick={async () => { await signOutAdmin(); window.location.href = "/login"; }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-white/40 hover:bg-white/[0.06] hover:text-white/80 transition-all">
           <LogOut className="h-4 w-4" /><span>Sign Out</span>
         </button>

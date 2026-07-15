@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowLeft, CheckCircle, Eye, EyeOff, Lock, Shield } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
+import { initializeRecoverySession, updateAdminPassword } from "@/lib/auth";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -20,25 +21,8 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const checkToken = async () => {
       try {
-        const { supabase } = await import("@/lib/supabase");
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get("access_token");
-        const refreshToken = hashParams.get("refresh_token");
-        const type = hashParams.get("type");
-
-        if (accessToken && refreshToken && type === "recovery") {
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          setIsValidToken(!sessionError);
-          return;
-        }
-
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        setIsValidToken(Boolean(session));
+        await initializeRecoverySession();
+        setIsValidToken(true);
       } catch {
         setIsValidToken(false);
       }
@@ -65,14 +49,7 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const { supabase } = await import("@/lib/supabase");
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-
-      if (updateError) {
-        setError(updateError.message || "Failed to reset password. The link may have expired.");
-        return;
-      }
-
+      await updateAdminPassword(password);
       setSuccess(true);
       setTimeout(() => router.push("/login"), 2000);
     } catch (err: any) {

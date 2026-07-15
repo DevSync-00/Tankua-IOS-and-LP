@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST='{"app\\\\dashboard\\\\trips\\\\new\\\\page.tsx -> @/lib/queries":{"id":5482,"files":["static/chunks/482-f87740511df645e4.js"]}}';

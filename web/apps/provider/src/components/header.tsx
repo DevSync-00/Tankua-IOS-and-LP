@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Bell, ChevronDown, Settings, LogOut } from "lucide-react";
+import { signOutProvider } from "@/lib/auth";
 
 interface HeaderProps {
   title: string;
@@ -113,7 +114,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
                   <a href="/dashboard/settings" className="flex items-center gap-3 px-4 py-2.5 font-dm text-[13px] text-brand-ink hover:bg-brand-sand transition-colors">
                     <Settings className="h-4 w-4 text-brand-muted" /> Settings
                   </a>
-                  <button onClick={() => { localStorage.removeItem("provider_user"); window.location.href = "/login"; }}
+                  <button onClick={async () => { await signOutProvider(); window.location.href = "/login"; }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 font-dm text-[13px] text-danger hover:bg-[rgba(226,75,74,0.05)] transition-colors">
                     <LogOut className="h-4 w-4" /> Sign Out
                   </button>

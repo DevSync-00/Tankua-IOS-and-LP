@@ -9,6 +9,7 @@ import {
   Wallet, Star, Settings, LogOut, HelpCircle, BarChart3, X, Menu,
 } from "lucide-react";
 import { cn } from "@tankua/ui";
+import { signOutProvider } from "@/lib/auth";
 
 const navSections = [
   {
@@ -66,8 +67,8 @@ export function Sidebar() {
     return () => { document.body.style.overflow = ""; };
   }, [isMobileMenuOpen]);
 
-  const handleSignOut = () => {
-    localStorage.removeItem("provider_user");
+  const handleSignOut = async () => {
+    await signOutProvider();
     window.location.href = "/login";
   };
 

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, Building2, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
 import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
+import { initializeRecoverySession, updateProviderPassword } from "@/lib/auth";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -20,31 +21,11 @@ export default function ResetPasswordPage() {
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check if we have a valid reset token in the URL
     const checkToken = async () => {
       try {
-        const { supabase } = await import("@/lib/supabase");
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const type = hashParams.get('type');
-
-        if (accessToken && type === 'recovery') {
-          // Token is present, verify it's valid by trying to get the session
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            setIsValidToken(true);
-          } else {
-            // Try to set the session with the token
-            const { error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: hashParams.get('refresh_token') || '',
-            });
-            setIsValidToken(!sessionError);
-          }
-        } else {
-          setIsValidToken(false);
-        }
-      } catch (err) {
+        await initializeRecoverySession();
+        setIsValidToken(true);
+      } catch {
         setIsValidToken(false);
       }
     };
@@ -71,34 +52,7 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const { supabase } = await import("@/lib/supabase");
-
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (updateError) {
-        setError(updateError.message || "Failed to reset password. The link may have expired.");
-        return;
-      }
-
-      // Check if user is a provider
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        const { data: providerUser } = await supabase
-          .from('provider_users')
-          .select('*, provider:providers(*)')
-          .eq('email', user.email)
-          .single();
-
-        if (!providerUser) {
-          setError("Access denied. Provider account required.");
-          await supabase.auth.signOut();
-          return;
-        }
-      }
-
+      await updateProviderPassword(password);
       setSuccess(true);
       
       // Redirect to login after 2 seconds

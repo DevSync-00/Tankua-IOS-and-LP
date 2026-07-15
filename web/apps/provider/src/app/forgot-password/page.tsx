@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Mail, Building2, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
 import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
+import { sendProviderPasswordReset } from "@/lib/auth";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -22,37 +23,7 @@ export default function ForgotPasswordPage() {
     setSuccess(false);
 
     try {
-      // Import supabase client
-      const { supabase } = await import("@/lib/supabase");
-      
-      // Check if email exists in provider_users table
-      const { data: providerUser } = await supabase
-        .from('provider_users')
-        .select('email')
-        .eq('email', email)
-        .single();
-
-      if (!providerUser) {
-        setError("No provider account found with this email address.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Send password reset email
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (resetError) {
-        // Check if error is because auth user doesn't exist
-        if (resetError.message?.includes('User not found') || resetError.message?.includes('not found')) {
-          setError("Your provider account exists, but your authentication account hasn't been created yet. Please contact support to set up your login credentials. This usually happens if you registered before the authentication system was fully configured.");
-        } else {
-          setError(resetError.message || "Failed to send reset email. Please try again.");
-        }
-        return;
-      }
-
+      await sendProviderPasswordReset(email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");
