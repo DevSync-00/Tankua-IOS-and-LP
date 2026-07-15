@@ -18,6 +18,76 @@ import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 
 const Tab = createBottomTabNavigator();
 
+const getTabIconName = (routeName, isFocused) => {
+  if (routeName === 'Home') return isFocused ? 'home' : 'home-outline';
+  if (routeName === 'Search') return isFocused ? 'search' : 'search-outline';
+  if (routeName === 'Trips') return isFocused ? 'bus' : 'bus-outline';
+  if (routeName === 'Help') return isFocused ? 'map' : 'map-outline';
+  if (routeName === 'Profile') return isFocused ? 'person' : 'person-outline';
+  return 'ellipse-outline';
+};
+
+const TabBarItem = ({ route, options, isFocused, onPress, onLongPress, label }) => {
+  const iconName = getTabIconName(route.name, isFocused);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { scale: withSpring(isFocused ? 1.15 : 1, { damping: 12, stiffness: 200 }) },
+      ],
+    };
+  });
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(isFocused ? 1 : 0, { duration: 250 }),
+      transform: [
+        { scale: withSpring(isFocused ? 1 : 0, { damping: 12, stiffness: 200 }) },
+      ],
+    };
+  });
+
+  const glowStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(isFocused ? 0.3 : 0, { duration: 250 }),
+    };
+  });
+
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityState={isFocused ? { selected: true } : {}}
+      accessibilityLabel={options.tabBarAccessibilityLabel}
+      testID={options.tabBarTestID}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={styles.tabButton}
+      activeOpacity={0.7}
+    >
+      <View style={styles.tabContent}>
+        <Animated.View style={[styles.iconGlow, glowStyle]} />
+        <Animated.View style={animatedStyle}>
+          <Ionicons
+            name={iconName}
+            size={26}
+            color={isFocused ? COLORS.primary : COLORS.grayLight}
+          />
+        </Animated.View>
+        <Animated.View style={[styles.activeIndicator, indicatorStyle]} />
+      </View>
+      <Text
+        style={[
+          styles.tabLabel,
+          isFocused && styles.tabLabelActive,
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 // Custom Liquid Glass Tab Bar Component
 const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
   return (
@@ -58,75 +128,16 @@ const LiquidGlassTabBar = ({ state, descriptors, navigation }) => {
               });
             };
 
-            let iconName;
-            if (route.name === 'Home') {
-              iconName = isFocused ? 'home' : 'home-outline';
-            } else if (route.name === 'Search') {
-              iconName = isFocused ? 'search' : 'search-outline';
-            } else if (route.name === 'Trips') {
-              iconName = isFocused ? 'bus' : 'bus-outline';
-            } else if (route.name === 'Help') {
-              iconName = isFocused ? 'map' : 'map-outline';
-            } else if (route.name === 'Profile') {
-              iconName = isFocused ? 'person' : 'person-outline';
-            }
-
-            const animatedStyle = useAnimatedStyle(() => {
-              return {
-                transform: [
-                  { scale: withSpring(isFocused ? 1.15 : 1, { damping: 12, stiffness: 200 }) },
-                ],
-              };
-            });
-
-            const indicatorStyle = useAnimatedStyle(() => {
-              return {
-                opacity: withTiming(isFocused ? 1 : 0, { duration: 250 }),
-                transform: [
-                  { scale: withSpring(isFocused ? 1 : 0, { damping: 12, stiffness: 200 }) },
-                ],
-              };
-            });
-
-            const glowStyle = useAnimatedStyle(() => {
-              return {
-                opacity: withTiming(isFocused ? 0.3 : 0, { duration: 250 }),
-              };
-            });
-
             return (
-              <TouchableOpacity
+              <TabBarItem
                 key={route.key}
-                accessibilityRole="button"
-                accessibilityState={isFocused ? { selected: true } : {}}
-                accessibilityLabel={options.tabBarAccessibilityLabel}
-                testID={options.tabBarTestID}
+                route={route}
+                options={options}
+                isFocused={isFocused}
                 onPress={onPress}
                 onLongPress={onLongPress}
-                style={styles.tabButton}
-                activeOpacity={0.7}
-              >
-                <View style={styles.tabContent}>
-                  <Animated.View style={[styles.iconGlow, glowStyle]} />
-                  <Animated.View style={animatedStyle}>
-                    <Ionicons
-                      name={iconName}
-                      size={26}
-                      color={isFocused ? COLORS.primary : COLORS.grayLight}
-                    />
-                  </Animated.View>
-                  <Animated.View style={[styles.activeIndicator, indicatorStyle]} />
-                </View>
-                <Text
-                  style={[
-                    styles.tabLabel,
-                    isFocused && styles.tabLabelActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-              </TouchableOpacity>
+                label={label}
+              />
             );
           })}
         </View>

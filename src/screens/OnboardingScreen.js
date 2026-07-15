@@ -10,18 +10,96 @@ import {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
-  withTiming,
   interpolate,
   Extrapolate,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, ANIMATIONS } from '../config/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import ModernButton from '../components/ModernButton';
 
+const OnboardingSlide = ({ item, index, width, scrollX }) => {
+  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.8, 1, 0.8],
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5],
+      Extrapolate.CLAMP
+    );
+
+    const translateY = interpolate(
+      scrollX.value,
+      inputRange,
+      [50, 0, 50],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ scale }, { translateY }],
+      opacity,
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.slide, { width }, animatedStyle]}>
+      <Animated.View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: `${item.color}15` }
+        ]}
+      >
+        <Text style={styles.emoji}>{item.emoji}</Text>
+      </Animated.View>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.description}>{item.description}</Text>
+    </Animated.View>
+  );
+};
+
+const PaginationDot = ({ index, width, scrollX }) => {
+  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+
+  const dotAnimatedStyle = useAnimatedStyle(() => {
+    const widthValue = interpolate(
+      scrollX.value,
+      inputRange,
+      [8, 24, 8],
+      Extrapolate.CLAMP
+    );
+    const opacityValue = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.3, 1, 0.3],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      width: widthValue,
+      opacity: opacityValue,
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.dot,
+        { backgroundColor: COLORS.primary },
+        dotAnimatedStyle,
+      ]}
+    />
+  );
+};
+
 const OnboardingScreen = ({ navigation }) => {
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
@@ -71,89 +149,20 @@ const OnboardingScreen = ({ navigation }) => {
     navigation.replace('Login');
   };
 
-  const renderSlide = ({ item, index }) => {
-    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-    
-    const animatedStyle = useAnimatedStyle(() => {
-      const scale = interpolate(
-        scrollX.value,
-        inputRange,
-        [0.8, 1, 0.8],
-        Extrapolate.CLAMP
-      );
-      
-      const opacity = interpolate(
-        scrollX.value,
-        inputRange,
-        [0.5, 1, 0.5],
-        Extrapolate.CLAMP
-      );
-      
-      const translateY = interpolate(
-        scrollX.value,
-        inputRange,
-        [50, 0, 50],
-        Extrapolate.CLAMP
-      );
-      
-      return {
-        transform: [
-          { scale },
-          { translateY },
-        ],
-        opacity,
-      };
-    });
-
-    return (
-      <Animated.View style={[styles.slide, { width }, animatedStyle]}>
-        <Animated.View 
-          style={[
-            styles.iconContainer,
-            { backgroundColor: `${item.color}15` }
-          ]}
-        >
-          <Text style={styles.emoji}>{item.emoji}</Text>
-        </Animated.View>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
-      </Animated.View>
-    );
-  };
+  const renderSlide = ({ item, index }) => (
+    <OnboardingSlide item={item} index={index} width={width} scrollX={scrollX} />
+  );
 
   const renderDots = () => {
     return (
       <View style={styles.dotsContainer}>
         {slides.map((_, index) => {
-          const dotAnimatedStyle = useAnimatedStyle(() => {
-            const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-            const widthValue = interpolate(
-              scrollX.value,
-              inputRange,
-              [8, 24, 8],
-              Extrapolate.CLAMP
-            );
-            const opacityValue = interpolate(
-              scrollX.value,
-              inputRange,
-              [0.3, 1, 0.3],
-              Extrapolate.CLAMP
-            );
-            
-            return {
-              width: widthValue,
-              opacity: opacityValue,
-            };
-          });
-
           return (
-            <Animated.View
+            <PaginationDot
               key={index}
-              style={[
-                styles.dot,
-                { backgroundColor: COLORS.primary },
-                dotAnimatedStyle,
-              ]}
+              index={index}
+              width={width}
+              scrollX={scrollX}
             />
           );
         })}
@@ -171,6 +180,7 @@ const OnboardingScreen = ({ navigation }) => {
         ref={flatListRef}
         data={slides}
         renderItem={renderSlide}
+        keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}

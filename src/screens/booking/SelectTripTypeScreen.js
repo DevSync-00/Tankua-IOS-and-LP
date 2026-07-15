@@ -12,7 +12,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, ANIMATIONS } from '../../config/theme';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -21,6 +20,55 @@ import ModernButton from '../../components/ModernButton';
 import AnimatedCard from '../../components/AnimatedCard';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+const TripTypeCard = ({ type, index, isSelected, onSelect }) => {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, ANIMATIONS.spring);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, ANIMATIONS.spring);
+  };
+
+  return (
+    <AnimatedCard delay={index * 100} variant="glass">
+      <AnimatedTouchable
+        style={[
+          styles.typeCard,
+          isSelected && styles.typeCardSelected,
+          animatedStyle,
+        ]}
+        onPress={() => onSelect(type.id)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: `${type.color}15` }]}>
+          <Text style={styles.emoji}>{type.emoji}</Text>
+        </View>
+        <View style={styles.typeContent}>
+          <Text style={styles.typeName}>{type.name}</Text>
+          <Text style={styles.typeDescription}>{type.description}</Text>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceLabel}>From</Text>
+            <Text style={styles.typePrice}>{type.basePrice} ETB</Text>
+          </View>
+        </View>
+        {isSelected && (
+          <View style={styles.checkContainer}>
+            <Ionicons name="checkmark-circle" size={32} color={COLORS.primary} />
+          </View>
+        )}
+      </AnimatedTouchable>
+    </AnimatedCard>
+  );
+};
 
 const SelectTripTypeScreen = ({ navigation }) => {
   const { t } = useLanguage();
@@ -77,52 +125,14 @@ const SelectTripTypeScreen = ({ navigation }) => {
 
         <View style={styles.typesContainer}>
           {tripTypes.map((type, index) => {
-            const isSelected = selectedType === type.id;
-            const scale = useSharedValue(1);
-
-            const animatedStyle = useAnimatedStyle(() => ({
-              transform: [{ scale: scale.value }],
-            }));
-
-            const handlePressIn = () => {
-              scale.value = withSpring(0.96, ANIMATIONS.spring);
-            };
-
-            const handlePressOut = () => {
-              scale.value = withSpring(1, ANIMATIONS.spring);
-            };
-
             return (
-              <AnimatedCard key={type.id} delay={index * 100} variant="glass">
-                <AnimatedTouchable
-                  style={[
-                    styles.typeCard,
-                    isSelected && styles.typeCardSelected,
-                    animatedStyle,
-                  ]}
-                  onPress={() => setSelectedType(type.id)}
-                  onPressIn={handlePressIn}
-                  onPressOut={handlePressOut}
-                  activeOpacity={1}
-                >
-                  <View style={[styles.iconContainer, { backgroundColor: `${type.color}15` }]}>
-                    <Text style={styles.emoji}>{type.emoji}</Text>
-                  </View>
-                  <View style={styles.typeContent}>
-                    <Text style={styles.typeName}>{type.name}</Text>
-                    <Text style={styles.typeDescription}>{type.description}</Text>
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.priceLabel}>From</Text>
-                      <Text style={styles.typePrice}>{type.basePrice} ETB</Text>
-                    </View>
-                  </View>
-                  {isSelected && (
-                    <View style={styles.checkContainer}>
-                      <Ionicons name="checkmark-circle" size={32} color={COLORS.primary} />
-                    </View>
-                  )}
-                </AnimatedTouchable>
-              </AnimatedCard>
+              <TripTypeCard
+                key={type.id}
+                type={type}
+                index={index}
+                isSelected={selectedType === type.id}
+                onSelect={setSelectedType}
+              />
             );
           })}
         </View>
