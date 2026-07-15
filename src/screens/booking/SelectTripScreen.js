@@ -208,7 +208,7 @@ const SelectTripScreen = ({ navigation }) => {
                       <Text style={styles.providerName}>
                         {provider?.name || 'Travel Provider'}
                       </Text>
-                      {provider?.rating && (
+                      {typeof provider?.rating === 'number' && provider.rating > 0 && (
                         <View style={styles.ratingContainer}>
                           <View style={styles.starsContainer}>
                             {renderStars(provider.rating)}

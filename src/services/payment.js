@@ -1,11 +1,69 @@
 import axios from 'axios';
 import { PAYMENT_CONFIG, PAYMENT_STATUS } from '../config/payment';
 
+const isHttpUrl = (value) => {
+  if (!value || typeof value !== 'string') return false;
+  return /^https?:\/\//i.test(value.trim());
+};
+
+const extractGatewayErrorMessage = (error, fallback = 'Payment request failed') => {
+  const responseData = error?.response?.data;
+  const message = responseData?.message;
+
+  if (typeof message === 'string' && message.trim()) {
+    return message;
+  }
+
+  if (message && typeof message === 'object') {
+    if (typeof message.error === 'string' && message.error.trim()) {
+      return message.error;
+    }
+    if (typeof message.detail === 'string' && message.detail.trim()) {
+      return message.detail;
+    }
+  }
+
+  if (Array.isArray(responseData?.errors) && responseData.errors.length > 0) {
+    const firstError = responseData.errors[0];
+    if (typeof firstError === 'string') return firstError;
+    if (typeof firstError?.message === 'string') return firstError.message;
+  }
+
+  if (typeof responseData?.error === 'string' && responseData.error.trim()) {
+    return responseData.error;
+  }
+
+  if (responseData && typeof responseData === 'object') {
+    try {
+      const serialized = JSON.stringify(responseData);
+      if (serialized && serialized !== '{}') {
+        return serialized;
+      }
+    } catch (serializationError) {
+      // Ignore serialization issues and keep falling back.
+    }
+  }
+
+  if (typeof error?.message === 'string' && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 /**
  * Generate a unique transaction reference
  */
 const generateTransactionRef = (bookingId) => {
-  return `TANKUA-${bookingId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
+  const bookingPart = String(bookingId || 'BK')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(-8)
+    .toUpperCase();
+  const timePart = Date.now().toString().slice(-8);
+  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  // Chapa max tx_ref length is 50 characters.
+  return `TNK-${timePart}-${bookingPart}-${randomPart}`.slice(0, 50);
 };
 
 /**
@@ -14,9 +72,13 @@ const generateTransactionRef = (bookingId) => {
  */
 export const initiateChapaPayment = async (paymentData) => {
   try {
-    // Check if API key is configured
-    if (!PAYMENT_CONFIG.chapa.apiKey || PAYMENT_CONFIG.chapa.apiKey.includes('xxxxx') || PAYMENT_CONFIG.chapa.apiKey === 'CHk_test_xxxxxxxxxxxxx') {
-      throw new Error('Chapa API key is not configured. Please set EXPO_PUBLIC_CHAPA_API_KEY in your environment variables.');
+    // Check if secret key is configured
+    const chapaKey = PAYMENT_CONFIG.chapa.secretKey;
+    if (!chapaKey || chapaKey.includes('xxxxx') || chapaKey === 'CHk_test_xxxxxxxxxxxxx' || chapaKey === 'CHASECK_TEST_xxxxxxxxxxxxx') {
+      throw new Error('Chapa secret key is not configured. Please set EXPO_PUBLIC_CHAPA_SECRET_KEY in your environment variables.');
+    }
+    if (chapaKey.startsWith('CHAPUBK-')) {
+      throw new Error('Chapa public key detected. Use your Chapa secret key (usually starts with CHASECK_) in EXPO_PUBLIC_CHAPA_SECRET_KEY.');
     }
 
     const { amount, currency = 'ETB', phoneNumber, bookingId, customerName, customerEmail } = paymentData;
@@ -28,23 +90,34 @@ export const initiateChapaPayment = async (paymentData) => {
       currency: currency,
       email: customerEmail || `${phoneNumber || 'customer'}@tankua.app`,
       first_name: customerName || 'Customer',
-      last_name: '',
+      last_name: 'User',
       phone_number: phoneNumber || '',
       tx_ref: transactionRef,
-      callback_url: PAYMENT_CONFIG.callbacks.webhook,
-      return_url: PAYMENT_CONFIG.callbacks.success,
       customization: {
-        title: 'Tankua - Trip Booking',
-        description: `Payment for booking ${bookingId}`,
+        // Chapa constraints: title <= 16 chars, description <= 50 chars.
+        title: 'Tankua Booking',
+        description: `Booking ${String(bookingId || '').slice(0, 40)}`.slice(0, 50),
       },
     };
+
+    // Chapa requires valid HTTP(S) callback/return URLs.
+    // We provide safe fallbacks when deep links are configured.
+    const callbackUrl = isHttpUrl(PAYMENT_CONFIG.callbacks.webhook)
+      ? PAYMENT_CONFIG.callbacks.webhook.trim()
+      : 'https://example.com/chapa/callback';
+    const returnUrl = isHttpUrl(PAYMENT_CONFIG.callbacks.success)
+      ? PAYMENT_CONFIG.callbacks.success.trim()
+      : callbackUrl;
+
+    payload.callback_url = callbackUrl;
+    payload.return_url = returnUrl;
 
     const response = await axios.post(
       `${PAYMENT_CONFIG.chapa.baseUrl}/transaction/initialize`,
       payload,
       {
         headers: {
-          'Authorization': `Bearer ${PAYMENT_CONFIG.chapa.apiKey}`,
+          'Authorization': `Bearer ${chapaKey}`,
           'Content-Type': 'application/json',
         },
       }
@@ -62,22 +135,24 @@ export const initiateChapaPayment = async (paymentData) => {
     throw new Error(response.data.message || 'Failed to initialize Chapa payment');
   } catch (error) {
     console.error('Chapa payment error:', error);
+    if (error?.response?.data) {
+      console.error('Chapa payment error response body:', error.response.data);
+    }
     
     // Handle specific error cases
     if (error.response?.status === 401) {
-      throw new Error('Invalid Chapa API key. Please check your API credentials in the configuration.');
+      throw new Error('Chapa authentication failed. Use a valid Chapa secret key (not CHAPUBK public key) in EXPO_PUBLIC_CHAPA_SECRET_KEY.');
     }
     
     if (error.response?.status === 400) {
-      const errorMessage = error.response?.data?.message || 'Invalid payment request';
+      const errorMessage = extractGatewayErrorMessage(error, 'Invalid payment request');
       throw new Error(errorMessage);
     }
 
-    throw new Error(
-      error.response?.data?.message || 
-      error.message || 
+    throw new Error(extractGatewayErrorMessage(
+      error,
       'Failed to process Chapa payment. Please check your API configuration.'
-    );
+    ));
   }
 };
 
@@ -86,11 +161,12 @@ export const initiateChapaPayment = async (paymentData) => {
  */
 export const verifyChapaPayment = async (transactionRef) => {
   try {
+    const chapaKey = PAYMENT_CONFIG.chapa.secretKey;
     const response = await axios.get(
       `${PAYMENT_CONFIG.chapa.baseUrl}/transaction/verify/${transactionRef}`,
       {
         headers: {
-          'Authorization': `Bearer ${PAYMENT_CONFIG.chapa.apiKey}`,
+          'Authorization': `Bearer ${chapaKey}`,
         },
       }
     );
@@ -256,15 +332,12 @@ const simulatePayment = async (paymentMethod, paymentData) => {
  * Check if we're in development mode (no API keys configured)
  */
 const isDevelopmentMode = () => {
-  const chapaKey = PAYMENT_CONFIG.chapa.apiKey;
-  const telebirrAppId = PAYMENT_CONFIG.telebirr.appId;
+  const chapaKey = PAYMENT_CONFIG.chapa.secretKey;
   
   return (
     !chapaKey || 
     chapaKey.includes('xxxxx') || 
-    chapaKey === 'CHk_test_xxxxxxxxxxxxx' ||
-    !telebirrAppId ||
-    telebirrAppId === 'your-app-id'
+    chapaKey === 'CHk_test_xxxxxxxxxxxxx'
   );
 };
 

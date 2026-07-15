@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { 
-  Search, 
-  Bell, 
-  ChevronDown, 
-  Settings,
-  User,
-  LogOut,
-  Calendar,
-} from "lucide-react";
-import { Button, Badge, Avatar } from "@tankua/ui";
+import { Bell, ChevronDown, Settings, LogOut } from "lucide-react";
 
 interface HeaderProps {
   title: string;
@@ -20,109 +11,118 @@ interface HeaderProps {
 
 export function Header({ title, subtitle, actions }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [providerName, setProviderName] = useState("Provider");
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
+    try {
+      const stored = localStorage.getItem("provider_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setProviderName(parsed?.name || parsed?.provider?.name || "Provider");
       }
-    };
+    } catch {}
+  }, []);
 
-    if (showNotifications) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [showNotifications]);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) setShowNotifications(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setShowProfile(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const notifications = [
     { id: 1, title: "New Booking", message: "Yohannes T. booked Lalibela trip", time: "5m ago", unread: true },
-    { id: 2, title: "Payment Received", message: "ETB 2,500 credited to your account", time: "1h ago", unread: true },
+    { id: 2, title: "Payment Received", message: "ETB 2,500 credited", time: "1h ago", unread: true },
     { id: 3, title: "Review Posted", message: "Sara M. left a 5-star review", time: "3h ago", unread: false },
   ];
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
   return (
-    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
-      <div className="flex items-center justify-between h-16 px-4 sm:px-6">
-        {/* Left side - Title */}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">{title}</h1>
-          {subtitle && <p className="text-xs sm:text-sm text-muted-foreground truncate">{subtitle}</p>}
+    <header className="sticky top-0 z-40 bg-white border-b border-[rgba(245,168,0,0.15)] h-14">
+      <div className="flex items-center justify-between h-full px-4 sm:px-6 lg:pl-6">
+        {/* Left */}
+        <div className="flex-1 min-w-0 pl-12 lg:pl-0">
+          <div className="flex items-center gap-2">
+            <h1 className="font-syne font-bold text-[15px] text-brand-ink truncate">{title}</h1>
+            {subtitle && <span className="hidden sm:inline font-dm text-[13px] text-brand-muted">· {subtitle}</span>}
+          </div>
         </div>
 
-        {/* Right side - Actions */}
-        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        {/* Right */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {actions}
-
-          {/* Today's date */}
-          <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-xl text-sm">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">
-              {new Date().toLocaleDateString("en-US", { 
-                weekday: "short", 
-                month: "short", 
-                day: "numeric" 
-              })}
-            </span>
-          </div>
 
           {/* Notifications */}
           <div className="relative" ref={notificationsRef}>
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-xl hover:bg-muted transition-colors touch-manipulation"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+            <button onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 rounded-xl hover:bg-brand-sand transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+              aria-label="Notifications">
+              <Bell className="h-[18px] w-[18px] text-brand-muted" />
+              {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full" />}
             </button>
-
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-card rounded-2xl shadow-xl border border-border overflow-hidden animate-slide-down z-50">
-                <div className="p-4 border-b border-border flex items-center justify-between">
-                  <h3 className="font-semibold">Notifications</h3>
-                  <Badge variant="default">2 new</Badge>
+              <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.10)] border border-[rgba(245,168,0,0.15)] overflow-hidden z-50 animate-slide-down">
+                <div className="px-4 py-3 border-b border-[rgba(245,168,0,0.1)] flex items-center justify-between">
+                  <h3 className="font-syne font-bold text-[14px] text-brand-ink">Notifications</h3>
+                  {unreadCount > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(245,168,0,0.15)] text-brand-gold-dark">{unreadCount} new</span>}
                 </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer ${
-                        notification.unread ? "bg-primary/5" : ""
-                      }`}
-                    >
+                <div className="max-h-72 overflow-y-auto divide-y divide-[rgba(245,168,0,0.06)]">
+                  {notifications.map((n) => (
+                    <div key={n.id} className={`px-4 py-3 hover:bg-brand-sand transition-colors cursor-pointer ${n.unread ? "bg-[rgba(245,168,0,0.03)]" : ""}`}>
                       <div className="flex items-start gap-3">
-                        <div className={`w-2 h-2 mt-2 rounded-full ${notification.unread ? "bg-primary" : "bg-transparent"}`} />
+                        <div className={`w-1.5 h-1.5 mt-1.5 rounded-full shrink-0 ${n.unread ? "bg-brand-gold" : "bg-transparent"}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{notification.title}</p>
-                          <p className="text-sm text-muted-foreground truncate">{notification.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                          <p className="font-dm font-medium text-[13px] text-brand-ink">{n.title}</p>
+                          <p className="font-dm text-[12px] text-brand-muted truncate mt-0.5">{n.message}</p>
+                          <p className="font-dm text-[11px] text-brand-muted/60 mt-1">{n.time}</p>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="p-3 border-t border-border">
-                  <Button variant="ghost" className="w-full" size="sm">
-                    View All Notifications
-                  </Button>
+                <div className="px-4 py-2.5 border-t border-[rgba(245,168,0,0.1)]">
+                  <button className="w-full text-[12px] text-brand-gold font-medium hover:text-brand-gold-dark transition-colors text-center">View all</button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* User */}
-          <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 border-l border-border">
-            <Avatar name="Abebe K." size="sm" />
-            <div className="hidden lg:block text-left">
-              <p className="text-sm font-medium">Abebe K.</p>
-              <p className="text-xs text-muted-foreground">Owner</p>
-            </div>
+          {/* Profile */}
+          <div ref={profileRef} className="relative flex items-center gap-2 pl-2 sm:pl-3 border-l border-[rgba(245,168,0,0.15)]">
+            <button onClick={() => setShowProfile(!showProfile)}
+              className="flex items-center gap-2 p-1 rounded-xl hover:bg-brand-sand transition-colors min-h-[36px]"
+              aria-label="Profile menu">
+              <div className="w-7 h-7 rounded-full bg-brand-gold flex items-center justify-center text-brand-ink font-bold text-[12px] shrink-0">
+                {providerName.charAt(0).toUpperCase()}
+              </div>
+              <span className="hidden lg:block font-dm font-medium text-[13px] text-brand-ink">{providerName}</span>
+              <ChevronDown className="hidden lg:block h-3 w-3 text-brand-muted" />
+            </button>
+            {showProfile && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.10)] border border-[rgba(245,168,0,0.15)] overflow-hidden z-50 animate-slide-down">
+                <div className="px-4 py-3 border-b border-[rgba(245,168,0,0.1)]">
+                  <p className="font-syne font-bold text-[13px] text-brand-ink">{providerName}</p>
+                  <p className="font-dm text-[12px] text-brand-muted mt-0.5">Provider</p>
+                </div>
+                <div className="py-1">
+                  <a href="/dashboard/settings" className="flex items-center gap-3 px-4 py-2.5 font-dm text-[13px] text-brand-ink hover:bg-brand-sand transition-colors">
+                    <Settings className="h-4 w-4 text-brand-muted" /> Settings
+                  </a>
+                  <button onClick={() => { localStorage.removeItem("provider_user"); window.location.href = "/login"; }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 font-dm text-[13px] text-danger hover:bg-[rgba(226,75,74,0.05)] transition-colors">
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </header>
   );
 }
-

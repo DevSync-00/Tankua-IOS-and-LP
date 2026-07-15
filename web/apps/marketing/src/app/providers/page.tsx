@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button, Card, Badge } from "@tankua/ui";
+import { providerPortalUrl, providerRegisterUrl } from "@/lib/portalUrls";
 
 const benefits = [
   {
@@ -75,28 +76,6 @@ const testimonials = [
 export default function ProvidersPage() {
   return (
     <main className="min-h-screen">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">T</span>
-              </div>
-              <span className="text-xl font-bold text-[#0A1A2F]">Tankua</span>
-            </Link>
-            <div className="hidden md:flex items-center gap-8">
-              <Link href="/about" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">About</Link>
-              <Link href="/how-it-works" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">How It Works</Link>
-              <Link href="/tours" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">Tours</Link>
-              <Link href="/providers" className="text-[#D4A017] font-medium">For Providers</Link>
-            </div>
-            <Link href="https://provider.tankua.et">
-              <Button>Provider Login</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
 
       {/* Hero */}
       <section className="pt-32 pb-20 bg-gradient-to-b from-[#0A1A2F] to-[#1a2d4a]">
@@ -113,13 +92,13 @@ export default function ProvidersPage() {
                 travelers, manage your operations efficiently, and scale your business.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="https://provider.tankua.et/register">
+                <Link href={providerRegisterUrl}>
                   <Button size="lg" className="bg-[#D4A017] hover:bg-[#B8860B]">
                     Become a Provider
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="https://provider.tankua.et">
+                <Link href={providerPortalUrl}>
                   <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
                     Provider Login
                   </Button>
@@ -178,7 +157,7 @@ export default function ProvidersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4">Provider Portal</Badge>
+              <Badge className="mb-4">Providers Portal</Badge>
               <h2 className="text-3xl font-bold text-[#0A1A2F] mb-6">
                 Everything You Need to Run Your Business
               </h2>
@@ -260,7 +239,7 @@ export default function ProvidersPage() {
           <p className="text-lg text-white/70 mb-8">
             Join Tankua today and start reaching thousands of travelers looking for trusted tour providers.
           </p>
-          <Link href="https://provider.tankua.et/register">
+          <Link href={providerRegisterUrl}>
             <Button size="lg" className="bg-[#D4A017] hover:bg-[#B8860B]">
               Apply to Become a Provider
               <ChevronRight className="ml-2 h-5 w-5" />
@@ -283,7 +262,7 @@ export default function ProvidersPage() {
               <span className="text-white font-bold">Tankua</span>
             </div>
             <p className="text-white/50 text-sm">
-              © {new Date().getFullYear()} Tankua. All rights reserved.
+              © {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.
             </p>
           </div>
         </div>

@@ -1,31 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, ArrowLeft } from "lucide-react";
+import { Shield } from "lucide-react";
 import { Button, Badge } from "@tankua/ui";
 
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">T</span>
-              </div>
-              <span className="text-xl font-bold text-[#0A1A2F]">Tankua</span>
-            </Link>
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
 
       {/* Content */}
       <section className="pt-32 pb-20">
@@ -135,7 +116,7 @@ export default function PrivacyPage() {
               <span className="text-white font-bold">Tankua</span>
             </div>
             <p className="text-white/50 text-sm">
-              © {new Date().getFullYear()} Tankua. All rights reserved.
+              © {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.
             </p>
           </div>
         </div>

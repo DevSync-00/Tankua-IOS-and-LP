@@ -179,9 +179,9 @@ export default function PromotionsPage() {
                 {/* Mobile Card View */}
                 <div className="lg:hidden divide-y divide-border">
                   {promotions.map((promo) => {
-                    const startDate = new Date(promo.valid_from).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    const endDate = new Date(promo.valid_until).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    
+                    const startDate = new Date(promo.valid_from).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                    const endDate = new Date(promo.valid_until).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
                     return (
                       <div key={promo.id} className="p-4 space-y-3">
                         <div className="flex items-start justify-between">
@@ -211,10 +211,10 @@ export default function PromotionsPage() {
                           <span className="truncate">{startDate} - {endDate}</span>
                         </div>
                         <div className="flex items-center justify-end gap-1 pt-2 border-t border-border">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
                             title="Copy code"
                             onClick={() => {
                               navigator.clipboard.writeText(promo.code);
@@ -226,10 +226,10 @@ export default function PromotionsPage() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
                             title="Delete"
                             onClick={() => handleDelete(promo.id)}
                           >
@@ -240,93 +240,87 @@ export default function PromotionsPage() {
                     );
                   })}
                 </div>
-              </>
-            )}
 
                 {/* Desktop Table View */}
-                {!loading && promotions.length > 0 && (
-                  <div className="hidden lg:block overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                          <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Code</th>
-                          <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Discount</th>
-                          <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Usage</th>
-                          <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</th>
-                          <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                          <th className="text-left py-4 px-6"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {promotions.map((promo) => {
-                          const startDate = new Date(promo.valid_from).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                          const endDate = new Date(promo.valid_until).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                          
-                          return (
-                            <tr key={promo.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                              <td className="py-4 px-6">
-                                <div>
-                                  <p className="font-mono font-semibold text-primary">{promo.code}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">{promo.description || promo.name}</p>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6">
-                                <Badge variant="secondary">
-                                  {promo.discount_type === "percentage" ? `${promo.discount_value}%` : `ETB ${promo.discount_value}`}
-                                </Badge>
-                              </td>
-                              <td className="py-4 px-6">
-                                <div>
-                                  <p className="font-medium text-sm">{promo.used_count.toLocaleString()}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {promo.usage_limit ? `of ${promo.usage_limit} limit` : "unlimited"}
-                                  </p>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>{startDate} - {endDate}</span>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6">
-                                {getStatusBadge(promo)}
-                              </td>
-                              <td className="py-4 px-6">
-                                <div className="flex items-center gap-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8" 
-                                    title="Copy code"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(promo.code);
-                                      alert("Code copied to clipboard!");
-                                    }}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 text-destructive" 
-                                    title="Delete"
-                                    onClick={() => handleDelete(promo.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <div className="hidden lg:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50">
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Code</th>
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Discount</th>
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Usage</th>
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</th>
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th className="text-left py-4 px-6"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {promotions.map((promo) => {
+                        const startDate = new Date(promo.valid_from).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        const endDate = new Date(promo.valid_until).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+                        return (
+                          <tr key={promo.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                            <td className="py-4 px-6">
+                              <div>
+                                <p className="font-mono font-semibold text-primary">{promo.code}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{promo.description || promo.name}</p>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <Badge variant="secondary">
+                                {promo.discount_type === "percentage" ? `${promo.discount_value}%` : `ETB ${promo.discount_value}`}
+                              </Badge>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div>
+                                <p className="font-medium text-sm">{promo.used_count.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {promo.usage_limit ? `of ${promo.usage_limit} limit` : "unlimited"}
+                                </p>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                <span>{startDate} - {endDate}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">{getStatusBadge(promo)}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Copy code"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(promo.code);
+                                    alert("Code copied to clipboard!");
+                                  }}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  title="Delete"
+                                  onClick={() => handleDelete(promo.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </>
             )}
           </CardContent>

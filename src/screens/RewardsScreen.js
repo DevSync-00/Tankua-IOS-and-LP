@@ -33,16 +33,25 @@ const RewardsScreen = ({ navigation }) => {
 
     try {
       setLoading(true);
-      
+
       // Load current points balance
       const { data: pointsData, error: pointsError } = await supabase
         .from('rewards_points')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (pointsError && pointsError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw pointsError;
+      // Table doesn't exist yet — show zero state, not an error
+      if (pointsError) {
+        if (pointsError.code === 'PGRST205' || pointsError.code === '42P01') {
+          setPoints(0);
+          setRewardsHistory([]);
+          return;
+        }
+        // PGRST116 = no rows (user has no points row yet) — also fine
+        if (pointsError.code !== 'PGRST116') {
+          throw pointsError;
+        }
       }
 
       setPoints(pointsData?.current_points || 0);
@@ -55,7 +64,14 @@ const RewardsScreen = ({ navigation }) => {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (historyError) throw historyError;
+      if (historyError) {
+        if (historyError.code === 'PGRST205' || historyError.code === '42P01') {
+          setRewardsHistory([]);
+          return;
+        }
+        throw historyError;
+      }
+
       setRewardsHistory(historyData || []);
     } catch (error) {
       console.error('Error loading rewards:', error);

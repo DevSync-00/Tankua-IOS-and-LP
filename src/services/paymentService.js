@@ -110,10 +110,13 @@ export const initiateChapaPayment = async (paymentData) => {
   const transactionRef = generateTransactionRef(bookingId);
 
   try {
-    // Check if API key is configured
-    const apiKey = PAYMENT_CONFIG.chapa.apiKey;
-    if (!apiKey || apiKey.includes('xxxxx') || apiKey === 'CHk_test_xxxxxxxxxxxxx') {
+    // Check if secret key is configured
+    const secretKey = PAYMENT_CONFIG.chapa.secretKey;
+    if (!secretKey || secretKey.includes('xxxxx') || secretKey === 'CHk_test_xxxxxxxxxxxxx' || secretKey === 'CHASECK_TEST_xxxxxxxxxxxxx') {
       throw new Error('CHAPA_NOT_CONFIGURED');
+    }
+    if (secretKey.startsWith('CHAPUBK-')) {
+      throw new Error('CHAPA_PUBLIC_KEY_USED');
     }
 
     // Create transaction record first
@@ -150,7 +153,7 @@ export const initiateChapaPayment = async (paymentData) => {
       payload,
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${secretKey}`,
           'Content-Type': 'application/json',
         },
         timeout: 30000,
@@ -185,7 +188,10 @@ export const initiateChapaPayment = async (paymentData) => {
 
     // Handle specific errors
     if (error.message === 'CHAPA_NOT_CONFIGURED') {
-      throw new Error('Payment gateway not configured. Please contact support.');
+      throw new Error('Payment gateway not configured. Please set EXPO_PUBLIC_CHAPA_SECRET_KEY.');
+    }
+    if (error.message === 'CHAPA_PUBLIC_KEY_USED') {
+      throw new Error('Chapa public key detected. Use the Chapa secret key (CHASECK_...) for payments.');
     }
     
     if (error.response?.status === 401) {
@@ -209,13 +215,13 @@ export const initiateChapaPayment = async (paymentData) => {
  */
 export const verifyChapaPayment = async (transactionRef) => {
   try {
-    const apiKey = PAYMENT_CONFIG.chapa.apiKey;
+    const secretKey = PAYMENT_CONFIG.chapa.secretKey;
     
     const response = await axios.get(
       `${PAYMENT_CONFIG.chapa.baseUrl}/transaction/verify/${transactionRef}`,
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${secretKey}`,
         },
         timeout: 15000,
       }
@@ -425,15 +431,12 @@ export const verifyTelebirrPayment = async (transactionRef) => {
  * Check if we're in development mode
  */
 export const isDevelopmentMode = () => {
-  const chapaKey = PAYMENT_CONFIG.chapa.apiKey;
-  const telebirrAppId = PAYMENT_CONFIG.telebirr.appId;
+  const chapaKey = PAYMENT_CONFIG.chapa.secretKey;
   
   return (
     !chapaKey || 
     chapaKey.includes('xxxxx') || 
-    chapaKey === 'CHk_test_xxxxxxxxxxxxx' ||
-    !telebirrAppId ||
-    telebirrAppId === 'your-app-id'
+    chapaKey === 'CHk_test_xxxxxxxxxxxxx'
   );
 };
 

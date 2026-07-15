@@ -76,34 +76,13 @@ export default function TourDetailPage() {
 
   return (
     <main className="min-h-screen">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">T</span>
-              </div>
-              <span className="text-xl font-bold text-[#0A1A2F]">Tankua</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href="/tours">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Tours
-                </Button>
-              </Link>
-              <Link href="/download">
-                <Button size="sm">Download App</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Image */}
-      <section className="pt-20 pb-12">
+      <section className="pt-28 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Link href="/tours" className="inline-flex items-center gap-2 text-sm font-medium text-[#0A1A2F]/70 hover:text-[#D4A017] mb-6">
+            <ArrowLeft className="h-4 w-4" />
+            Back to all tours
+          </Link>
           <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden mb-8">
             <Image
               src={tour.image || tour.images?.[0] || "https://images.pexels.com/photos/12109950/pexels-photo-12109950.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop"}
@@ -288,7 +267,7 @@ export default function TourDetailPage() {
               <span className="text-white font-bold">Tankua</span>
             </div>
             <p className="text-white/50 text-sm">
-              © {new Date().getFullYear()} Tankua. All rights reserved.
+              © {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.
             </p>
           </div>
         </div>

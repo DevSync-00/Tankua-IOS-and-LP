@@ -1,251 +1,131 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Image,
   TouchableOpacity,
-  useWindowDimensions,
-  Share,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-// Using semi-transparent background instead of blur for compatibility
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
-import { isFavorited, toggleFavorite } from '../services/favorites';
+import { isFavorited as checkFavorited, toggleFavorite } from '../services/favorites';
 
-const EnhancedDestinationCard = ({
-  destination,
-  onPress,
-  size = 'medium', // 'small', 'medium', 'large'
-  index = 0,
-  containerWidth, // Passed from parent to avoid hook timing issues
-}) => {
-  const windowDimensions = useWindowDimensions();
-  const [isFavorited, setIsFavorited] = useState(false);
-  
-  // Safely get width with multiple fallbacks - ensure we always have a valid number
-  const width = useMemo(() => {
-    if (containerWidth && typeof containerWidth === 'number' && containerWidth > 0 && !isNaN(containerWidth)) {
-      return containerWidth;
-    }
-    
-    const wdWidth = windowDimensions?.width;
-    if (wdWidth && typeof wdWidth === 'number' && wdWidth > 0 && !isNaN(wdWidth)) {
-      return wdWidth;
-    }
-    
-    try {
-      const dims = Dimensions.get('window');
-      const dimsWidth = dims?.width;
-      if (dimsWidth && typeof dimsWidth === 'number' && dimsWidth > 0 && !isNaN(dimsWidth)) {
-        return dimsWidth;
-      }
-    } catch (error) {
-      // Silently fall through to default
-    }
-    
-    return 375; // Default iPhone width
-  }, [containerWidth, windowDimensions]);
+/**
+ * Destination card — two variants driven by `size`:
+ *   'small'  → compact grid card (used in 2-col FlatList)
+ *   'large'  → full-width feature card (used in horizontal lists / home)
+ *
+ * Width is always 100% of the parent cell; the caller controls cell width via
+ * FlatList column layout. No internal width calculation needed.
+ */
+const EnhancedDestinationCard = ({ destination, onPress, size = 'small' }) => {
+  const [favorited, setFavorited] = useState(false);
 
   const {
-    id,
-    name,
-    images = [],
-    city = '',
-    region = '',
-    rating = 0,
-    review_count = 0,
-    price = null,
-    distance = 0,
-    category = 'other',
-    estimated_duration = null, // in hours
-    price_range = null, // e.g., '$$' or { min: 100, max: 500 }
+    id, name, images = [], city = '', region = '',
+    rating = 0, review_count = 0, price = null, distance = 0,
+    estimated_duration = null,
   } = destination;
 
-  const imageUri = images && images.length > 0 ? images[0] : null;
+  const imageUri  = images?.[0] ?? null;
+  const location  = city || region || '';
+  const imgHeight = size === 'large' ? 220 : 160;
 
-  // Bento Grid sizing
-  const getCardDimensions = () => {
-    // Ensure width is a valid number
-    const safeWidth = typeof width === 'number' && width > 0 ? width : 375;
-    const cardSpacing = SPACING.md * 2;
-    const availableWidth = safeWidth - cardSpacing;
-    
-    if (size === 'large') {
-      return {
-        width: availableWidth,
-        height: 320,
-        imageHeight: 240,
-      };
-    } else if (size === 'small') {
-      return {
-        width: (availableWidth - SPACING.md) / 2,
-        height: 280, // Fixed height for standard grid
-        imageHeight: 200, // Fixed image height
-      };
-    } else {
-      // Medium - takes 2/3 width
-      return {
-        width: (availableWidth * 2) / 3 - SPACING.md / 2,
-        height: 300,
-        imageHeight: 220,
-      };
-    }
-  };
-
-  const dimensions = getCardDimensions();
-
-  // Load favorite status on mount
   useEffect(() => {
-    const loadFavoriteStatus = async () => {
-      if (id) {
-        const favorited = await isFavorited(id);
-        setIsFavorited(favorited);
-      }
-    };
-    loadFavoriteStatus();
+    if (id) checkFavorited(id).then(setFavorited);
   }, [id]);
 
   const handleFavorite = async (e) => {
-    e.stopPropagation(); // Prevent card press when clicking favorite button
+    e.stopPropagation();
     if (!id) return;
-    
-    const newFavoriteStatus = await toggleFavorite(id);
-    setIsFavorited(newFavoriteStatus);
-  };
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out ${name} in ${city || region}!`,
-        title: name,
-      });
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  };
-
-  const formatPriceRange = () => {
-    if (!price_range) return null;
-    if (typeof price_range === 'string') return price_range;
-    if (price_range.min && price_range.max) {
-      return `$${price_range.min}-${price_range.max}`;
-    }
-    return null;
+    const next = await toggleFavorite(id);
+    setFavorited(next);
   };
 
   const formatDuration = () => {
     if (!estimated_duration) return null;
-    if (estimated_duration < 1) {
-      return `${Math.round(estimated_duration * 60)}min`;
-    }
-    if (estimated_duration < 24) {
-      return `${Math.round(estimated_duration)}h`;
-    }
+    if (estimated_duration < 1) return `${Math.round(estimated_duration * 60)}m`;
+    if (estimated_duration < 24) return `${Math.round(estimated_duration)}h`;
     return `${Math.round(estimated_duration / 24)}d`;
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.card, { width: dimensions.width, height: dimensions.height }]}
-      onPress={onPress}
-      activeOpacity={0.9}
-    >
-      {/* Image Container */}
-      <View style={styles.imageContainer}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.88}>
+      {/* ── Image ── */}
+      <View style={[styles.imgWrap, { height: imgHeight }]}>
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={[styles.image, { height: dimensions.imageHeight }]} />
+          <Image source={{ uri: imageUri }} style={styles.img} resizeMode="cover" />
         ) : (
-          <View style={[styles.imagePlaceholder, { height: dimensions.imageHeight }]}>
-            <Ionicons name="image-outline" size={48} color={COLORS.grayLight} />
+          <View style={styles.imgPlaceholder}>
+            <Ionicons name="image-outline" size={36} color={COLORS.grayLight} />
           </View>
         )}
 
-        {/* Gradient Overlay */}
+        {/* Gradient at bottom of image */}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.85)']}
-          style={styles.gradient}
+          colors={['transparent', 'rgba(0,0,0,0.55)']}
+          style={styles.imgGradient}
         />
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleFavorite}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons
-              name={isFavorited ? 'heart' : 'heart-outline'}
-              size={20}
-              color={isFavorited ? COLORS.accent : COLORS.white}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { marginLeft: SPACING.xs }]}
-            onPress={handleShare}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="share-outline" size={20} color={COLORS.white} />
-          </TouchableOpacity>
-        </View>
+        {/* Favourite button */}
+        <TouchableOpacity style={styles.favBtn} onPress={handleFavorite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons
+            name={favorited ? 'heart' : 'heart-outline'}
+            size={18}
+            color={favorited ? '#FF6B6B' : COLORS.white}
+          />
+        </TouchableOpacity>
 
-        {/* Price Badge */}
-        {price && (
+        {/* Price badge pinned to bottom-left of image */}
+        {typeof price === 'number' && price > 0 && (
           <View style={styles.priceBadge}>
-            <Text style={styles.priceLabel}>From</Text>
-            <Text style={styles.priceValue}>ETB {price}</Text>
+            <Text style={styles.priceText}>ETB {price.toLocaleString()}</Text>
           </View>
         )}
       </View>
 
-      {/* Glassmorphism Footer */}
-      <View style={styles.footer}>
-        <View style={styles.footerContent}>
-          <View style={styles.footerTop}>
-            <Text style={styles.title} numberOfLines={2}>
-              {name}
-            </Text>
-            {rating > 0 && (
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={14} color={COLORS.warning} />
-                <Text style={[styles.ratingText, { marginLeft: 4 }]}>{rating.toFixed(1)}</Text>
-                {review_count > 0 && (
-                  <Text style={styles.reviewCount}>({review_count})</Text>
-                )}
-              </View>
-            )}
-          </View>
+      {/* ── Text content ── */}
+      <View style={styles.body}>
+        {/* Name + rating on the same row */}
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={2}>{name}</Text>
+          {rating > 0 && (
+            <View style={styles.ratingWrap}>
+              <Ionicons name="star" size={11} color={COLORS.warning} />
+              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+            </View>
+          )}
+        </View>
 
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color={COLORS.gray} />
-            <Text style={[styles.location, { marginLeft: 4 }]} numberOfLines={1}>
-              {city || region}
-            </Text>
+        {/* Location */}
+        {location ? (
+          <View style={styles.locRow}>
+            <Ionicons name="location-outline" size={12} color={COLORS.grayLight} />
+            <Text style={styles.locText} numberOfLines={1}>{location}</Text>
           </View>
+        ) : null}
 
-          {/* Metadata Row */}
-          <View style={styles.metadataRow}>
-            {formatDuration() && (
-              <View style={styles.metadataBadge}>
-                <Ionicons name="time-outline" size={12} color={COLORS.gray} />
-                <Text style={[styles.metadataText, { marginLeft: 4 }]}>{formatDuration()}</Text>
-              </View>
-            )}
-            {formatPriceRange() && (
-              <View style={styles.metadataBadge}>
-                <Ionicons name="cash-outline" size={12} color={COLORS.gray} />
-                <Text style={[styles.metadataText, { marginLeft: 4 }]}>{formatPriceRange()}</Text>
-              </View>
-            )}
-            {distance > 0 && (
-              <View style={styles.metadataBadge}>
-                <Ionicons name="navigate-outline" size={12} color={COLORS.gray} />
-                <Text style={[styles.metadataText, { marginLeft: 4 }]}>{distance}km</Text>
-              </View>
-            )}
-          </View>
+        {/* Meta pills */}
+        <View style={styles.metaRow}>
+          {formatDuration() && (
+            <View style={styles.metaPill}>
+              <Ionicons name="time-outline" size={11} color={COLORS.gray} />
+              <Text style={styles.metaText}>{formatDuration()}</Text>
+            </View>
+          )}
+          {distance > 0 && (
+            <View style={styles.metaPill}>
+              <Ionicons name="navigate-outline" size={11} color={COLORS.gray} />
+              <Text style={styles.metaText}>{distance} km</Text>
+            </View>
+          )}
+          {review_count > 0 && (
+            <View style={styles.metaPill}>
+              <Ionicons name="chatbubble-outline" size={11} color={COLORS.gray} />
+              <Text style={styles.metaText}>{review_count}</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -255,45 +135,44 @@ const EnhancedDestinationCard = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    marginBottom: SPACING.md,
-    ...SHADOWS.medium,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
+    ...SHADOWS.medium,
   },
-  imageContainer: {
+
+  // Image
+  imgWrap: {
     width: '100%',
     position: 'relative',
   },
-  image: {
+  img: {
     width: '100%',
-    resizeMode: 'cover',
+    height: '100%',
   },
-  imagePlaceholder: {
+  imgPlaceholder: {
     width: '100%',
+    height: '100%',
     backgroundColor: COLORS.backgroundGray,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gradient: {
+  imgGradient: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: 120,
+    height: 60,
   },
-  actionButtons: {
+  favBtn: {
     position: 'absolute',
     top: SPACING.sm,
     right: SPACING.sm,
-    flexDirection: 'row',
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -302,101 +181,77 @@ const styles = StyleSheet.create({
     bottom: SPACING.sm,
     left: SPACING.sm,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.lg,
-    ...SHADOWS.small,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.md,
   },
-  priceLabel: {
-    fontSize: 9,
-    color: COLORS.white,
-    fontWeight: FONTS.weights.bold,
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  priceValue: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.white,
+  priceText: {
+    fontSize: FONTS.sizes.xs,
     fontWeight: FONTS.weights.black,
+    color: COLORS.white,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-    ...SHADOWS.small,
-    height: 80, // Fixed height for consistent card appearance regardless of content
+
+  // Body
+  body: {
+    padding: SPACING.sm,
+    gap: 4,
   },
-  footerContent: {
-    padding: SPACING.md,
-    height: '100%',
-    justifyContent: 'flex-start',
-  },
-  footerTop: {
+  nameRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: SPACING.xs,
-    height: 40, // Fixed height for title area
+    justifyContent: 'space-between',
+    gap: SPACING.xs,
   },
-  title: {
+  name: {
     flex: 1,
-    fontSize: FONTS.sizes.md,
-    fontWeight: FONTS.weights.black,
+    fontSize: FONTS.sizes.sm,
+    fontWeight: FONTS.weights.bold,
     color: COLORS.secondary,
-    marginRight: SPACING.sm,
-    lineHeight: 20,
-    height: 40, // Fixed height for title (2 lines max)
-    overflow: 'hidden',
+    lineHeight: 18,
   },
-  ratingContainer: {
+  ratingWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 2,
+    backgroundColor: `${COLORS.warning}18`,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.sm,
+    flexShrink: 0,
   },
   ratingText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.secondary,
+    fontSize: 11,
     fontWeight: FONTS.weights.bold,
+    color: COLORS.secondary,
   },
-  reviewCount: {
-    fontSize: FONTS.sizes.xs,
-    color: COLORS.gray,
-  },
-  locationRow: {
+  locRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.xs,
-    height: 18, // Fixed height for consistent spacing
+    gap: 3,
   },
-  location: {
-    fontSize: FONTS.sizes.xs,
-    color: COLORS.gray,
+  locText: {
+    fontSize: 11,
+    color: COLORS.grayLight,
     fontWeight: FONTS.weights.medium,
     flex: 1,
   },
-  metadataRow: {
+  metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    minHeight: 24, // Fixed minimum height for consistent spacing
+    gap: 4,
+    marginTop: 2,
   },
-  metadataBadge: {
+  metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 3,
     backgroundColor: COLORS.backgroundGray,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: BORDER_RADIUS.full,
-    marginRight: SPACING.xs,
-    marginBottom: SPACING.xs,
+    paddingHorizontal: SPACING.xs + 2,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.sm,
   },
-  metadataText: {
-    fontSize: FONTS.sizes.xs,
+  metaText: {
+    fontSize: 10,
     color: COLORS.gray,
     fontWeight: FONTS.weights.medium,
   },

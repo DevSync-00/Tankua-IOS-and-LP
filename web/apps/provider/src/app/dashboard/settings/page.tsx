@@ -253,7 +253,7 @@ export default function SettingsPage() {
                   <CardTitle>Bank Account Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="p-6 bg-gradient-to-br from-[#0A1A2F] to-[#1a3a5c] rounded-2xl text-white">
+                  <div className="p-6 bg-gradient-to-br from-brand-dark to-brand-earth rounded-2xl text-white">
                     <div className="flex items-center justify-between mb-6">
                       <Building2 className="h-8 w-8" />
                       <Badge className="bg-emerald-500">Verified</Badge>

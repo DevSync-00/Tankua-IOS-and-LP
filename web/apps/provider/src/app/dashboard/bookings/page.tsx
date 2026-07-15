@@ -219,6 +219,91 @@ export default function BookingsPage() {
     }
   };
 
+  const handleBulkStatusUpdate = async (newStatus: string) => {
+    if (selectedBookings.length === 0) {
+      alert("Please select at least one booking");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to ${newStatus} ${selectedBookings.length} booking(s)?`)) {
+      return;
+    }
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const bookingId of selectedBookings) {
+        const result = await updateBookingStatus(bookingId, { status: newStatus });
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        alert(`Successfully updated ${successCount} booking(s)${failCount > 0 ? `. ${failCount} failed.` : ''}`);
+        setSelectedBookings([]);
+        if (providerId) {
+          await loadBookings(providerId);
+        }
+      } else {
+        alert("Failed to update bookings. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error updating bookings:", err);
+      alert("Failed to update bookings. Please try again.");
+    }
+  };
+
+  const handleExport = () => {
+    const bookingsToExport = selectedBookings.length > 0
+      ? filteredBookings.filter(b => selectedBookings.includes(b.id))
+      : filteredBookings;
+
+    if (bookingsToExport.length === 0) {
+      alert("No bookings to export");
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Booking ID', 'Customer', 'Destination', 'Trip Date', 'Seats', 'Amount', 'Status', 'Payment Status', 'Created At'];
+    const rows = bookingsToExport.map(booking => {
+      const customerName = booking.user?.name || "Unknown";
+      const destinationName = booking.trip?.destination?.name || booking.destination_name || "Unknown";
+      const tripDate = booking.trip?.departure_date ? formatDate(booking.trip.departure_date) : formatDate(booking.created_at);
+      
+      return [
+        booking.id.substring(0, 8),
+        customerName,
+        destinationName,
+        tripDate,
+        booking.seats.toString(),
+        booking.total_price.toString(),
+        booking.status,
+        booking.payment_status,
+        new Date(booking.created_at).toLocaleString(),
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `bookings_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -247,8 +332,13 @@ export default function BookingsPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-            <Button variant="outline" size="sm" leftIcon={<Download className="h-4 w-4" />}>
-              Export
+            <Button 
+              variant="outline" 
+              size="sm" 
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExport}
+            >
+              Export {selectedBookings.length > 0 ? `(${selectedBookings.length})` : ''}
             </Button>
           </div>
         }
@@ -392,6 +482,44 @@ export default function BookingsPage() {
           </Card>
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedBookings.length > 0 && (
+          <Card className="p-4 bg-primary/5 border-primary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium">
+                  {selectedBookings.length} booking(s) selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkStatusUpdate("confirmed")}
+                  leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                >
+                  Confirm All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkStatusUpdate("cancelled")}
+                  leftIcon={<XCircle className="h-4 w-4" />}
+                >
+                  Cancel All
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedBookings([])}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Bookings Table */}
         <Card>
           <CardContent className="p-0">
@@ -440,11 +568,13 @@ export default function BookingsPage() {
                       </div>
                       <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
                         {phone && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={`tel:${phone}`}>
+                            <a
+                              href={`tel:${phone}`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                              title="Call customer"
+                            >
                               <Phone className="h-4 w-4" />
                             </a>
-                          </Button>
                         )}
                         {booking.status === "pending" && (
                           <>
@@ -556,11 +686,13 @@ export default function BookingsPage() {
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
                               {phone && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                  <a href={`tel:${phone}`}>
-                                    <Phone className="h-4 w-4" />
-                                  </a>
-                                </Button>
+                                <a
+                                  href={`tel:${phone}`}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                  title="Call customer"
+                                >
+                                  <Phone className="h-4 w-4" />
+                                </a>
                               )}
                               {booking.status === "pending" && (
                                 <>

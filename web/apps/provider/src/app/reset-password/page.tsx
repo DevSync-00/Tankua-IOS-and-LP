@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, Building2, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import { Button, Card } from "@tankua/ui";
+import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -113,19 +114,21 @@ export default function ResetPasswordPage() {
 
   if (isValidToken === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A1A2F] via-[#0d2341] to-[#0A1A2F] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="relative min-h-screen bg-brand-dark flex items-center justify-center overflow-hidden">
+        <AuthHeroBackdrop />
+        <div className="relative z-[1] text-white font-dm">Loading...</div>
       </div>
     );
   }
 
   if (isValidToken === false) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A1A2F] via-[#0d2341] to-[#0A1A2F] flex items-center justify-center p-6">
-        <Card className="bg-white p-8 max-w-md w-full">
+      <div className="relative min-h-screen bg-brand-dark flex items-center justify-center p-6 overflow-hidden">
+        <AuthHeroBackdrop />
+        <Card className="relative z-[1] bg-white p-8 max-w-md w-full shadow-card border border-[rgba(245,168,0,0.15)]">
           <div className="text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
-            <h2 className="text-2xl font-bold text-[#0A1A2F]">Invalid or Expired Link</h2>
+            <h2 className="text-2xl font-bold text-brand-ink font-syne">Invalid or Expired Link</h2>
             <p className="text-muted-foreground">
               This password reset link is invalid or has expired. Please request a new one.
             </p>
@@ -147,23 +150,17 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A1A2F] via-[#0d2341] to-[#0A1A2F] flex">
-      {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative p-12 flex-col justify-between">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='%23D4A017' fill-opacity='0.5'/%3E%3C/svg%3E")`,
-          backgroundSize: "60px 60px",
-        }} />
+    <div className="relative min-h-screen bg-brand-dark flex overflow-hidden">
+      <AuthHeroBackdrop />
 
+      {/* Left side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-[1] p-12 flex-col justify-between">
         <div className="relative">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-2xl">T</span>
-            </div>
+            <Image src="/icon.jpg" alt="Tankua" width={48} height={48} className="rounded-xl object-contain shadow-lg shadow-black/20" />
             <div>
-              <span className="text-2xl font-bold text-white">Tankua</span>
-              <span className="block text-sm text-white/50">Provider Portal</span>
+              <span className="text-2xl font-bold text-white font-syne">Tankua</span>
+              <span className="block text-sm text-white/50">Providers Portal</span>
             </div>
           </Link>
         </div>
@@ -178,22 +175,20 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="relative text-white/40 text-sm">
-          © 2024 Tankua. All rights reserved.
+          © {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.
         </div>
       </div>
 
       {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="relative z-[1] flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg mb-4">
-              <span className="text-white font-bold text-3xl">T</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white">Provider Portal</h1>
+            <Image src="/icon.jpg" alt="Tankua" width={64} height={64} className="mx-auto rounded-2xl object-contain shadow-lg mb-4" />
+            <h1 className="text-2xl font-bold text-white font-syne">Providers Portal</h1>
           </div>
 
-          <Card className="bg-white p-8">
+          <Card className="bg-white p-8 shadow-card border border-[rgba(245,168,0,0.15)]">
             {success ? (
               <div className="text-center space-y-6">
                 <div className="flex flex-col items-center gap-4 p-6 bg-green-50 border border-green-200 rounded-xl">
@@ -214,7 +209,7 @@ export default function ResetPasswordPage() {
             ) : (
               <>
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-[#0A1A2F]">Reset Password</h2>
+                  <h2 className="text-2xl font-bold text-brand-ink font-syne">Reset Password</h2>
                   <p className="text-muted-foreground mt-2">Enter your new password below</p>
                 </div>
 

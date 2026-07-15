@@ -5,8 +5,12 @@
 export const PAYMENT_CONFIG = {
   // Chapa API Configuration
   chapa: {
-    // Get your API key from https://developer.chapa.co/
-    apiKey: process.env.EXPO_PUBLIC_CHAPA_API_KEY || 'CHk_test_xxxxxxxxxxxxx',
+    // Use your Chapa secret key from https://developer.chapa.co/
+    // Keep fallback to EXPO_PUBLIC_CHAPA_API_KEY for backward compatibility.
+    secretKey:
+      process.env.EXPO_PUBLIC_CHAPA_SECRET_KEY ||
+      process.env.EXPO_PUBLIC_CHAPA_API_KEY ||
+      'CHASECK_TEST_xxxxxxxxxxxxx',
     baseUrl: 'https://api.chapa.co/v1',
     // For production, use: 'https://api.chapa.co/v1'
     // For testing, use: 'https://api.chapa.co/v1' (same URL, but test keys)

@@ -101,8 +101,8 @@ export default function UsersPage() {
 
     try {
       const success = await updateUser(selectedUser.id, {
-        name: formData.name || null,
-        email: formData.email || null,
+        name: formData.name || undefined,
+        email: formData.email || undefined,
         phone_number: formData.phone_number,
         is_admin: formData.is_admin,
       });

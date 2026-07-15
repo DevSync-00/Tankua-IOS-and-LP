@@ -87,7 +87,7 @@ const ModernPickupStationCard = ({
               <Text style={styles.detailText}>{station.pickupTime}</Text>
             </View>
           )}
-          {showDistance && station.distance && (
+          {showDistance && typeof station.distance === 'number' && station.distance > 0 && (
             <View style={styles.detailItem}>
               <View style={styles.detailIcon}>
                 <Ionicons name="navigate" size={14} color={COLORS.primary} />

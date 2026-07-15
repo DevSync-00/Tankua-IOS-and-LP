@@ -6,12 +6,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-brand-sand">
       <Sidebar />
-      <main className="lg:ml-64 pt-16 lg:pt-0">
+      {/* w-60 = 240px sidebar; pt-14 accounts for mobile hamburger header area */}
+      <main className="lg:ml-60 min-h-screen pt-14 lg:pt-0">
         {children}
       </main>
     </div>
   );
 }
-

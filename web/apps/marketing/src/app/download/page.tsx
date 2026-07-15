@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { Smartphone, Download, QrCode, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button, Card, Badge } from "@tankua/ui";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-stores";
 
 const features = [
   "Browse 250+ tours and destinations",
@@ -17,28 +17,6 @@ const features = [
 export default function DownloadPage() {
   return (
     <main className="min-h-screen">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">T</span>
-              </div>
-              <span className="text-xl font-bold text-[#0A1A2F]">Tankua</span>
-            </Link>
-            <div className="hidden md:flex items-center gap-8">
-              <Link href="/about" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">About</Link>
-              <Link href="/how-it-works" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">How It Works</Link>
-              <Link href="/tours" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">Tours</Link>
-              <Link href="/contact" className="text-[#0A1A2F]/70 hover:text-[#0A1A2F]">Contact</Link>
-            </div>
-            <Link href="/">
-              <Button variant="ghost" size="sm">Back to Home</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
 
       {/* Hero */}
       <section className="pt-32 pb-20 bg-gradient-to-b from-[#F8F6F0] to-white">
@@ -64,7 +42,7 @@ export default function DownloadPage() {
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <a 
-                  href="https://apps.apple.com/app/tankua" 
+                  href={APP_STORE_URL} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-block"
@@ -77,7 +55,7 @@ export default function DownloadPage() {
                   </Button>
                 </a>
                 <a 
-                  href="https://play.google.com/store/apps/details?id=com.tankua.app" 
+                  href={PLAY_STORE_URL} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-block"
@@ -158,7 +136,7 @@ export default function DownloadPage() {
               <span className="text-white font-bold">Tankua</span>
             </div>
             <p className="text-white/50 text-sm">
-              © {new Date().getFullYear()} Tankua. All rights reserved.
+              © {new Date().getFullYear()} BIT Labs Technologies. All rights reserved.
             </p>
           </div>
         </div>

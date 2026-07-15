@@ -14,46 +14,67 @@ const config: Config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+        /* ── Tankua Brand System ── */
+        "brand-gold":       "#F5A800",
+        "brand-gold-light": "#FFD166",
+        "brand-gold-dark":  "#C47F00",
+        "brand-ink":        "#111111",
+        "brand-dark":       "#1A0F00",
+        "brand-earth":      "#3D2B00",
+        "brand-sand":       "#FFF8EC",
+        "brand-cream":      "#FFFDF7",
+        "brand-muted":      "#8C7355",
+        success: "#1D9E75",
+        warning: "#EF9F27",
+        danger:  "#E24B4A",
+        info:    "#3A8FD4",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans:     ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+        display:  ["var(--font-syne)", "Syne", "system-ui", "sans-serif"],
+        fraunces: ["var(--font-fraunces)", "Fraunces", "Georgia", "serif"],
+        mono:     ["var(--font-syne-mono)", "Syne Mono", "monospace"],
+        syne:     ["var(--font-syne)", "Syne", "system-ui", "sans-serif"],
+        dm:       ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+      },
+      borderRadius: {
+        lg:   "var(--radius)",
+        md:   "calc(var(--radius) - 2px)",
+        sm:   "calc(var(--radius) - 4px)",
+        xl:   "14px",
+        "2xl":"18px",
+        "3xl":"24px",
+      },
+      boxShadow: {
+        card:       "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
+        "card-gold":"0 2px 12px rgba(245,168,0,0.18), 0 1px 3px rgba(0,0,0,0.06)",
+        "btn":      "0 2px 8px rgba(245,168,0,0.30)",
       },
       animation: {
-        "fade-in": "fadeIn 0.5s ease-out forwards",
-        "slide-up": "slideUp 0.5s ease-out forwards",
+        "fade-up":    "fadeUp 0.4s ease-out forwards",
         "slide-down": "slideDown 0.3s ease-out forwards",
-        "float": "float 6s ease-in-out infinite",
-        "pulse-glow": "pulseGlow 2s ease-in-out infinite",
+        "boat-float": "boatFloat 3s ease-in-out infinite",
+        "spin-slow":  "spin 1.2s linear infinite",
+      },
+      keyframes: {
+        fadeUp: {
+          "0%":   { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        slideDown: {
+          "0%":   { opacity: "0", transform: "translateY(-10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        boatFloat: {
+          "0%,100%": { transform: "translateY(0px) rotate(0deg)" },
+          "50%":     { transform: "translateY(-10px) rotate(1.5deg)" },
+        },
       },
     },
   },
@@ -61,4 +82,3 @@ const config: Config = {
 };
 
 export default config;
-

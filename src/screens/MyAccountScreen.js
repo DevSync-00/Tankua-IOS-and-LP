@@ -12,10 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import ModernButton from '../components/ModernButton';
 
 const MyAccountScreen = ({ navigation }) => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, logout } = useAuth();
+  const { language, changeLanguage } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -117,6 +119,91 @@ const MyAccountScreen = ({ navigation }) => {
               placeholderTextColor={COLORS.grayLight}
             />
           </View>
+
+          {/* Language Toggle */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Language</Text>
+            <View style={styles.languageToggle}>
+              <TouchableOpacity
+                style={[
+                  styles.languageOption,
+                  language === 'am' && styles.languageOptionActive,
+                ]}
+                onPress={() => changeLanguage('am')}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.languageText,
+                    language === 'am' && styles.languageTextActive,
+                  ]}
+                >
+                  Amharic
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.languageOption,
+                  language === 'en' && styles.languageOptionActive,
+                ]}
+                onPress={() => changeLanguage('en')}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.languageText,
+                    language === 'en' && styles.languageTextActive,
+                  ]}
+                >
+                  English
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Notification Settings Shortcut */}
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => navigation.navigate('NotificationPreferences')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.linkLeft}>
+              <Ionicons name="notifications-outline" size={20} color={COLORS.secondary} />
+              <Text style={styles.linkText}>Notification Settings</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+          </TouchableOpacity>
+
+          {/* Logout */}
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => {
+              Alert.alert(
+                'Log out',
+                'Are you sure you want to log out?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Log out',
+                    style: 'destructive',
+                    onPress: async () => {
+                      await logout();
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'SignIn' }],
+                      });
+                    },
+                  },
+                ]
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.linkLeft}>
+              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+              <Text style={[styles.linkText, { color: COLORS.error }]}>Log out</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -195,6 +282,59 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     width: '100%',
+  },
+  section: {
+    marginTop: SPACING.lg,
+  },
+  sectionTitle: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.secondary,
+    marginBottom: SPACING.sm,
+  },
+  languageToggle: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.full,
+    padding: SPACING.xs,
+    ...SHADOWS.small,
+  },
+  languageOption: {
+    flex: 1,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+  },
+  languageOptionActive: {
+    backgroundColor: COLORS.primary,
+  },
+  languageText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray,
+    fontWeight: FONTS.weights.medium,
+  },
+  languageTextActive: {
+    color: COLORS.white,
+    fontWeight: FONTS.weights.bold,
+  },
+  linkRow: {
+    marginTop: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderTopWidth: 1,
+    borderColor: COLORS.borderLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  linkLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  linkText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.secondary,
+    fontWeight: FONTS.weights.medium,
   },
 });
 

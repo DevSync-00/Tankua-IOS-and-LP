@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, Shield, AlertCircle } from "lucide-react";
-import { Button, Input, Card } from "@tankua/ui";
+import { Button, Card } from "@tankua/ui";
+import { AuthHeroBackdrop } from "@/components/auth-hero-backdrop";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,30 +62,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A1A2F] flex items-center justify-center p-4">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='%23D4A017' fill-opacity='0.5'/%3E%3C/svg%3E")`,
-          backgroundSize: "60px 60px",
-        }} />
-      </div>
+    <div className="relative min-h-screen bg-brand-dark flex items-center justify-center p-4 overflow-hidden">
+      <AuthHeroBackdrop />
 
-      {/* Decorative elements */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-[#D4A017]/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#D4A017]/5 rounded-full blur-3xl" />
+      {/* Decorative blobs */}
+      <div className="absolute top-20 left-20 w-72 h-72 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-brand-gold/6 rounded-full blur-3xl pointer-events-none z-0" />
 
-      <div className="relative w-full max-w-md">
+      <div className="relative z-[1] w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#F4C430] flex items-center justify-center shadow-lg shadow-[#D4A017]/30 mb-4">
-            <span className="text-white font-bold text-3xl">T</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-white/60 mt-2">Sign in to manage Tankua platform</p>
+          <Image src="/icon.jpg" alt="Tankua" width={64} height={64} className="mx-auto rounded-2xl object-contain shadow-lg shadow-black/30 mb-4" />
+          <h1 className="text-2xl font-bold text-white font-syne">Admin Dashboard</h1>
+          <p className="text-white/60 mt-2 font-dm">Sign in to manage Tankua platform</p>
         </div>
 
-        <Card className="bg-white/10 backdrop-blur-xl border border-white/20 p-8">
+        <Card className="bg-white/10 backdrop-blur-xl border border-white/18 shadow-[0_8px_40px_rgba(0,0,0,0.25)] p-8">
           <form onSubmit={handleLogin} className="space-y-6">
             {error && (
               <div className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
@@ -100,7 +94,7 @@ export default function LoginPage() {
                   placeholder="Email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 pl-12 pr-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-[#D4A017] focus:ring-2 focus:ring-[#D4A017]/20 transition-all"
+                  className="w-full h-12 pl-12 pr-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/25 transition-all"
                 />
               </div>
 
@@ -111,7 +105,7 @@ export default function LoginPage() {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 pl-12 pr-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-[#D4A017] focus:ring-2 focus:ring-[#D4A017]/20 transition-all"
+                  className="w-full h-12 pl-12 pr-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/25 transition-all"
                 />
                 <button
                   type="button"
@@ -125,10 +119,10 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-white/20 bg-white/10 text-[#D4A017] focus:ring-[#D4A017]/20" />
+                <input type="checkbox" className="w-4 h-4 rounded border-white/20 bg-white/10 text-brand-gold focus:ring-brand-gold/25" />
                 <span className="text-sm text-white/60">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-[#D4A017] hover:underline">
+              <Link href="/forgot-password" className="text-sm text-brand-gold-light hover:text-brand-gold hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -148,7 +142,7 @@ export default function LoginPage() {
 
         <p className="text-center text-white/40 text-sm mt-8">
           Need help? Contact{" "}
-          <a href="mailto:support@tankua.et" className="text-[#D4A017] hover:underline">
+          <a href="mailto:support@tankua.et" className="text-brand-gold-light hover:text-brand-gold hover:underline">
             support@tankua.et
           </a>
         </p>
