@@ -15,6 +15,7 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [tokenError, setTokenError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
 
@@ -23,7 +24,8 @@ export default function ResetPasswordPage() {
       try {
         await initializeRecoverySession();
         setIsValidToken(true);
-      } catch {
+      } catch (err: any) {
+        setTokenError(err.message || "This password reset link is invalid or has expired.");
         setIsValidToken(false);
       }
     };
@@ -73,7 +75,7 @@ export default function ResetPasswordPage() {
         <Card className="bg-white p-8 max-w-md w-full text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-[#0A1A2F]">Invalid or Expired Link</h1>
-          <p className="text-muted-foreground mt-2">Request a new admin password reset link.</p>
+          <p className="text-muted-foreground mt-2">{tokenError || "Request a new admin password reset link."}</p>
           <div className="space-y-3 mt-6">
             <Link href="/forgot-password">
               <Button className="w-full">Request New Link</Button>

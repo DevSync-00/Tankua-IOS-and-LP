@@ -120,6 +120,7 @@ export async function initializeRecoverySession() {
   const accessToken = hashParams.get("access_token");
   const refreshToken = hashParams.get("refresh_token");
   const type = hashParams.get("type");
+  const searchParams = new URLSearchParams(window.location.search);
 
   if (accessToken && refreshToken && type === "recovery") {
     const { error } = await supabase.auth.setSession({
@@ -130,7 +131,19 @@ export async function initializeRecoverySession() {
     return;
   }
 
-  const code = new URLSearchParams(window.location.search).get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const tokenType = searchParams.get("type");
+
+  if (tokenHash && tokenType === "recovery") {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "recovery",
+    });
+    if (error) throw new Error(authErrorMessage(error));
+    return;
+  }
+
+  const code = searchParams.get("code");
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) throw new Error(authErrorMessage(error));
