@@ -10,9 +10,12 @@ import {
   CreditCard,
   Save,
   Upload,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Avatar } from "@tankua/ui";
+import { changeProviderPassword } from "@/lib/auth";
 
 const settingsSections = [
   { id: "company", label: "Company", icon: Building2 },
@@ -25,11 +28,56 @@ const settingsSections = [
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("company");
   const [saving, setSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   const handleSave = async () => {
     setSaving(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
     setSaving(false);
+  };
+
+  const handlePasswordUpdate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Please fill in all password fields.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters long.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordError("New password must be different from your current password.");
+      return;
+    }
+
+    try {
+      setPasswordSaving(true);
+      await changeProviderPassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSuccess("Password updated successfully.");
+    } catch (err: any) {
+      setPasswordError(err.message || "Unable to update password. Please try again.");
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   return (
@@ -189,12 +237,30 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle>Change Password</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 max-w-md">
+                <CardContent>
+                  <form onSubmit={handlePasswordUpdate} className="space-y-4 max-w-md">
+                    {passwordError && (
+                      <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                        <AlertCircle className="h-5 w-5 shrink-0" />
+                        <p>{passwordError}</p>
+                      </div>
+                    )}
+
+                    {passwordSuccess && (
+                      <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                        <CheckCircle className="h-5 w-5 shrink-0" />
+                        <p>{passwordSuccess}</p>
+                      </div>
+                    )}
+
                   <div>
                     <label className="block text-sm font-medium mb-2">Current Password</label>
                     <input
                       type="password"
                       placeholder="Enter current password"
+                      value={currentPassword}
+                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      autoComplete="current-password"
                       className="w-full px-4 py-2 rounded-xl border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                     />
                   </div>
@@ -203,6 +269,9 @@ export default function SettingsPage() {
                     <input
                       type="password"
                       placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      autoComplete="new-password"
                       className="w-full px-4 py-2 rounded-xl border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                     />
                   </div>
@@ -211,10 +280,16 @@ export default function SettingsPage() {
                     <input
                       type="password"
                       placeholder="Confirm new password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      autoComplete="new-password"
                       className="w-full px-4 py-2 rounded-xl border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                     />
                   </div>
-                  <Button className="mt-4">Update Password</Button>
+                    <Button type="submit" className="mt-4" isLoading={passwordSaving}>
+                      Update Password
+                    </Button>
+                  </form>
                 </CardContent>
               </Card>
             )}

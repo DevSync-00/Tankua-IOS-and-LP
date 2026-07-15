@@ -164,3 +164,25 @@ export async function updateProviderPassword(password: string) {
   if (error) throw new Error(authErrorMessage(error));
   window.localStorage.removeItem(PROVIDER_STORAGE_KEY);
 }
+
+export async function changeProviderPassword(currentPassword: string, newPassword: string) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) throw new Error(authErrorMessage(userError));
+  if (!user?.email) throw new Error("Please sign in again before changing your password.");
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: normalizeEmail(user.email),
+    password: currentPassword,
+  });
+
+  if (signInError) {
+    throw new Error("Current password is incorrect.");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(authErrorMessage(error));
+}
