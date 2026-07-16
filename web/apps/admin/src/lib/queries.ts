@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { adminDbRequest } from './admin-api';
 
 // ============================================
 // DASHBOARD STATISTICS
@@ -504,16 +505,18 @@ export async function updateBookingStatus(
   id: string,
   updates: { status?: string; payment_status?: string }
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('bookings')
-    .update(updates)
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'bookings',
+      action: 'update',
+      values: updates,
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error updating booking:', error);
     return false;
   }
-  
+
   return true;
 }
 
@@ -575,12 +578,14 @@ export async function updateProviderStatus(
   id: string,
   status: 'active' | 'inactive' | 'suspended'
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('providers')
-    .update({ status })
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'providers',
+      action: 'update',
+      values: { status, updated_at: new Date().toISOString() },
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error updating provider:', error);
     return false;
   }
@@ -599,12 +604,14 @@ export async function updateProvider(
     status?: 'active' | 'inactive' | 'suspended';
   }
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('providers')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'providers',
+      action: 'update',
+      values: { ...updates, updated_at: new Date().toISOString() },
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error updating provider:', error);
     return false;
   }
@@ -621,9 +628,11 @@ export async function createProvider(provider: {
   status?: 'active' | 'inactive' | 'suspended';
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const { data, error } = await supabase
-      .from('providers')
-      .insert({
+    const { data } = await adminDbRequest<any[]>({
+      table: 'providers',
+      action: 'insert',
+      select: 'id',
+      values: {
         name: provider.name,
         description: provider.description || null,
         phone: provider.phone || null,
@@ -632,17 +641,241 @@ export async function createProvider(provider: {
         status: provider.status || 'inactive',
         rating: 0,
         total_trips: 0,
-      })
-      .select('id')
-      .single();
+      },
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, id: data.id };
+    return { success: true, id: data?.[0]?.id };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to create provider' };
+  }
+}
+
+export async function approveProvider(providerId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: provider } = await adminDbRequest<any>({
+      table: 'providers',
+      action: 'select',
+      select: 'id, name, email, phone',
+      filters: [{ column: 'id', value: providerId }],
+      single: true,
+    });
+
+    if (!provider) {
+      return { success: false, error: 'Provider not found' };
+    }
+
+    await adminDbRequest({
+      table: 'providers',
+      action: 'update',
+      values: { status: 'active', updated_at: new Date().toISOString() },
+      filters: [{ column: 'id', value: providerId }],
+    });
+
+    if (provider.email) {
+      const email = provider.email.trim().toLowerCase();
+      const { data: existingUser } = await adminDbRequest<any | null>({
+        table: 'provider_users',
+        action: 'select',
+        select: 'id',
+        filters: [
+          { column: 'provider_id', value: providerId },
+          { column: 'email', value: email },
+        ],
+        maybeSingle: true,
+      });
+
+      if (existingUser) {
+        await adminDbRequest({
+          table: 'provider_users',
+          action: 'update',
+          values: { is_active: true, role: 'owner', updated_at: new Date().toISOString() },
+          filters: [{ column: 'id', value: existingUser.id }],
+        });
+      } else {
+        await adminDbRequest({
+          table: 'provider_users',
+          action: 'insert',
+          values: {
+          provider_id: providerId,
+          email,
+          name: provider.name,
+          phone: provider.phone || null,
+          role: 'owner',
+          is_active: true,
+          },
+        });
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to approve provider' };
+  }
+}
+
+export interface AdminTrip {
+  id: string;
+  provider: { id: string; name: string; email?: string | null } | null;
+  destination: { id: string; name: string; city?: string | null; region?: string | null } | null;
+  provider_id: string;
+  destination_id: string | null;
+  departure_date: string;
+  return_date: string | null;
+  trip_type: string;
+  price: number;
+  max_seats: number;
+  available_seats: number;
+  status: string;
+  tour_category?: string | null;
+  itinerary?: string | null;
+  bookings_count: number;
+}
+
+export async function getAdminTrips(options?: {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  providerId?: string;
+  search?: string;
+}): Promise<{ trips: AdminTrip[]; total: number }> {
+  try {
+    const filters: Array<{ column: string; value: any }> = [];
+    if (options?.status) filters.push({ column: 'status', value: options.status });
+    if (options?.providerId) filters.push({ column: 'provider_id', value: options.providerId });
+
+    const { data, count } = await adminDbRequest<any[]>({
+      table: 'trips',
+      action: 'select',
+      select: `
+      id,
+      provider_id,
+      destination_id,
+      departure_date,
+      date,
+      return_date,
+      trip_type,
+      price,
+      max_seats,
+      available_seats,
+      status,
+      tour_category,
+      itinerary,
+      providers (id, name, email),
+      destinations (id, name, city, region)
+    `,
+      filters,
+      order: { column: 'departure_date', ascending: false },
+      limit: options?.limit,
+      offset: options?.offset,
+      count: true,
+    });
+
+    return {
+      trips: (data || []).map((trip: any) => ({
+      id: trip.id,
+      provider: trip.providers || null,
+      destination: trip.destinations || null,
+      provider_id: trip.provider_id,
+      destination_id: trip.destination_id,
+      departure_date: trip.departure_date || trip.date,
+      return_date: trip.return_date,
+      trip_type: trip.trip_type,
+      price: trip.price || 0,
+      max_seats: trip.max_seats || 0,
+      available_seats: trip.available_seats || 0,
+      status: trip.status,
+      tour_category: trip.tour_category,
+      itinerary: trip.itinerary,
+      bookings_count: Math.max(0, (trip.max_seats || 0) - (trip.available_seats || 0)),
+      })),
+      total: count || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching admin trips:', error);
+    return { trips: [], total: 0 };
+  }
+}
+
+export async function createAdminTrip(trip: {
+  provider_id: string;
+  destination_id: string;
+  trip_type: string;
+  departure_date: string;
+  return_date?: string | null;
+  price: number;
+  max_seats: number;
+  tour_category?: string;
+  itinerary?: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  const tripData: any = {
+    provider_id: trip.provider_id,
+    destination_id: trip.destination_id,
+    trip_type: trip.trip_type,
+    departure_date: trip.departure_date,
+    date: trip.departure_date.split('T')[0],
+    return_date: trip.return_date || null,
+    price: trip.price,
+    max_seats: trip.max_seats,
+    available_seats: trip.max_seats,
+    tour_category: trip.tour_category || null,
+    itinerary: trip.itinerary || null,
+    status: 'upcoming',
+  };
+
+  try {
+    const { data } = await adminDbRequest<any[]>({
+      table: 'trips',
+      action: 'insert',
+      select: 'id',
+      values: tripData,
+    });
+
+    return { success: true, id: data?.[0]?.id };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to create trip' };
+  }
+}
+
+export async function updateAdminTripStatus(
+  tripId: string,
+  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await adminDbRequest({
+      table: 'trips',
+      action: 'update',
+      values: { status },
+      filters: [{ column: 'id', value: tripId }],
+    });
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update trip status' };
+  }
+}
+
+export async function deleteAdminTrip(tripId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: bookings } = await adminDbRequest<any[]>({
+      table: 'bookings',
+      action: 'select',
+      select: 'id',
+      filters: [{ column: 'trip_id', value: tripId }],
+      limit: 1,
+    });
+
+    if (bookings && bookings.length > 0) {
+      return { success: false, error: 'Cannot delete a trip with existing bookings. Cancel it instead.' };
+    }
+
+    await adminDbRequest({
+      table: 'trips',
+      action: 'delete',
+      filters: [{ column: 'id', value: tripId }],
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to delete trip' };
   }
 }
 
@@ -731,10 +964,11 @@ export async function createDestination(destination: {
   category?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    // Try destinations table first
-    let { data, error } = await supabase
-      .from('destinations')
-      .insert({
+    const { data } = await adminDbRequest<any[]>({
+      table: 'destinations',
+      action: 'insert',
+      select: 'id',
+      values: {
         name: destination.name,
         description: destination.description || null,
         region: destination.region || null,
@@ -744,21 +978,10 @@ export async function createDestination(destination: {
         tags: destination.tags || [],
         location: destination.location || null,
         category: destination.category || 'other',
-      })
-      .select('id')
-      .single();
+      },
+    });
 
-    // No fallback - destinations table should exist
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    if (!data) {
-      return { success: false, error: 'No data returned' };
-    }
-
-    return { success: true, id: data.id };
+    return { success: true, id: data?.[0]?.id };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to create destination' };
   }
@@ -779,19 +1002,12 @@ export async function updateDestination(
   }
 ): Promise<boolean> {
   try {
-    // Try destinations table first
-    let { error } = await supabase
-      .from('destinations')
-      .update(updates)
-      .eq('id', id);
-
-    // No fallback - destinations table should exist
-
-    if (error) {
-      console.error('Error updating destination:', error);
-      return false;
-    }
-
+    await adminDbRequest({
+      table: 'destinations',
+      action: 'update',
+      values: updates,
+      filters: [{ column: 'id', value: id }],
+    });
     return true;
   } catch (err: any) {
     console.error('Error updating destination:', err);
@@ -807,9 +1023,11 @@ export async function createChurch(
     ? { lat: church.latitude, lng: church.longitude, coordinates: [church.longitude, church.latitude] }
     : null;
 
-  const { data, error } = await supabase
-    .from('destinations')
-    .insert({
+  try {
+    const { data } = await adminDbRequest<any[]>({
+      table: 'destinations',
+      action: 'insert',
+      values: {
       name: church.name,
       description: church.description || null,
       region: church.region || null,
@@ -818,28 +1036,28 @@ export async function createChurch(
       images: church.images || [],
       tags: church.tags || [],
       location: location,
-    })
-    .select()
-    .single();
+      },
+    });
 
-  if (error) {
+    const created = data?.[0];
+    if (!created) return null;
+
+    return {
+      id: created.id,
+      name: created.name,
+      description: created.description,
+      region: created.region,
+      city: created.city,
+      latitude: created.location?.coordinates?.[1] || created.location?.lat || null,
+      longitude: created.location?.coordinates?.[0] || created.location?.lng || null,
+      images: created.images || [],
+      tags: created.tags || [],
+      created_at: created.created_at,
+    };
+  } catch (error) {
     console.error('Error creating church:', error);
     return null;
   }
-  
-  // Map back to Church format
-  return {
-    id: data.id,
-    name: data.name,
-    description: data.description,
-    region: data.region,
-    city: data.city,
-    latitude: data.location?.coordinates?.[1] || data.location?.lat || null,
-    longitude: data.location?.coordinates?.[0] || data.location?.lng || null,
-    images: data.images || [],
-    tags: data.tags || [],
-    created_at: data.created_at,
-  };
 }
 
 export async function updateChurch(
@@ -874,13 +1092,17 @@ export async function updateChurch(
     }
   });
 
-  const { error } = await supabase
-    .from('destinations')
-    .update(updateData)
-    .eq('id', id)
-    .eq('category', 'church'); // Ensure we're only updating churches
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'destinations',
+      action: 'update',
+      values: updateData,
+      filters: [
+        { column: 'id', value: id },
+        { column: 'category', value: 'church' },
+      ],
+    });
+  } catch (error) {
     console.error('Error updating church:', error);
     return false;
   }
@@ -889,13 +1111,16 @@ export async function updateChurch(
 }
 
 export async function deleteChurch(id: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('destinations')
-    .delete()
-    .eq('id', id)
-    .eq('category', 'church'); // Ensure we're only deleting churches
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'destinations',
+      action: 'delete',
+      filters: [
+        { column: 'id', value: id },
+        { column: 'category', value: 'church' },
+      ],
+    });
+  } catch (error) {
     console.error('Error deleting church:', error);
     return false;
   }
@@ -1073,12 +1298,14 @@ export async function updateSupportTicket(
     updateData.resolved_at = new Date().toISOString();
   }
 
-  const { error } = await supabase
-    .from('support_tickets')
-    .update(updateData)
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'support_tickets',
+      action: 'update',
+      values: updateData,
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error updating support ticket:', error);
     return false;
   }
@@ -1096,23 +1323,26 @@ export async function createTicketMessage(
     is_internal?: boolean;
   }
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('ticket_messages')
-    .insert({
+  try {
+    await adminDbRequest({
+      table: 'ticket_messages',
+      action: 'insert',
+      values: {
       ticket_id: ticketId,
       ...message,
+      },
     });
 
-  if (error) {
+    await adminDbRequest({
+      table: 'support_tickets',
+      action: 'update',
+      values: { updated_at: new Date().toISOString() },
+      filters: [{ column: 'id', value: ticketId }],
+    });
+  } catch (error) {
     console.error('Error creating ticket message:', error);
     return false;
   }
-
-  // Update ticket updated_at
-  await supabase
-    .from('support_tickets')
-    .update({ updated_at: new Date().toISOString() })
-    .eq('id', ticketId);
 
   return true;
 }
@@ -1201,9 +1431,11 @@ export async function createPromotion(promotion: {
     const adminData = typeof window !== 'undefined' ? localStorage.getItem('admin_user') : null;
     const adminUser = adminData ? JSON.parse(adminData) : null;
 
-    const { data, error } = await supabase
-      .from('promotions')
-      .insert({
+    const { data } = await adminDbRequest<any[]>({
+      table: 'promotions',
+      action: 'insert',
+      select: 'id',
+      values: {
         code: promotion.code,
         name: promotion.name,
         description: promotion.description || null,
@@ -1219,15 +1451,10 @@ export async function createPromotion(promotion: {
         applicable_providers: promotion.applicable_providers || null,
         is_active: promotion.is_active !== undefined ? promotion.is_active : true,
         created_by: adminUser?.id || null,
-      })
-      .select('id')
-      .single();
+      },
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, id: data.id };
+    return { success: true, id: data?.[0]?.id };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to create promotion' };
   }
@@ -1251,12 +1478,14 @@ export async function updatePromotion(
     is_active?: boolean;
   }
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('promotions')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'promotions',
+      action: 'update',
+      values: { ...updates, updated_at: new Date().toISOString() },
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error updating promotion:', error);
     return false;
   }
@@ -1265,12 +1494,13 @@ export async function updatePromotion(
 }
 
 export async function deletePromotion(id: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('promotions')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'promotions',
+      action: 'delete',
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error deleting promotion:', error);
     return false;
   }
@@ -1340,68 +1570,40 @@ export async function createAdminUser(admin: {
   password: string;
 }): Promise<{ success: boolean; id?: string; error?: string; authWarning?: string }> {
   try {
-    // Step 1: Create user in Supabase Auth
-    // Note: This requires admin API. If it fails, user must be created manually in Auth dashboard
-    const { supabase: adminSupabase } = await import('@/lib/supabase');
-    
     let authWarning: string | undefined;
-    let authUserId: string | undefined;
 
     try {
-      // Try to create auth user using admin API
-      // This will only work if we have service role key configured
-      // Check if admin API is available
-      if (adminSupabase.auth && (adminSupabase.auth as any).admin) {
-        const { data: authData, error: authError } = await (adminSupabase.auth as any).admin.createUser({
+      await adminDbRequest({
+        table: 'admin_users',
+        action: 'authCreateUser',
+        values: {
           email: admin.email,
           password: admin.password,
           email_confirm: true,
-        });
-
-        if (authError) {
-          if (authError.message?.includes('already registered')) {
-            // User already exists in Auth - that's okay
-            authWarning = 'User already exists in Auth. Using existing account.';
-          } else {
-            // Can't create auth user - need manual creation
-            authWarning = `Could not create Auth user automatically: ${authError.message}. Please create user in Supabase Auth dashboard first.`;
-          }
-        } else if (authData?.user) {
-          authUserId = authData.user.id;
-        }
-      } else {
-        // Admin API not available - user must create manually
-        authWarning = 'Auth user creation requires service role key. Please create user in Supabase Auth dashboard first.';
-      }
+        },
+      });
     } catch (authErr: any) {
-      // Admin API not available - user must create manually
-      authWarning = 'Auth user creation requires service role key. Please create user in Supabase Auth dashboard first.';
+      if (authErr.message?.includes('already registered')) {
+        authWarning = 'User already exists in Auth. Using existing account.';
+      } else {
+        authWarning = `Could not create Auth user automatically: ${authErr.message}`;
+      }
     }
 
-    // Step 2: Create admin_users entry
-    const { data, error } = await supabase
-      .from('admin_users')
-      .insert({
+    const { data } = await adminDbRequest<any[]>({
+      table: 'admin_users',
+      action: 'insert',
+      select: 'id',
+      values: {
         email: admin.email,
         name: admin.name,
         role: admin.role,
         phone: admin.phone || null,
         is_active: true,
-      })
-      .select('id')
-      .single();
+      },
+    });
 
-    if (error) {
-      // If admin_users insert fails but auth was created, clean up
-      if (authUserId && adminSupabase.auth && (adminSupabase.auth as any).admin) {
-        try {
-          await (adminSupabase.auth as any).admin.deleteUser(authUserId);
-        } catch {}
-      }
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, id: data.id, authWarning };
+    return { success: true, id: data?.[0]?.id, authWarning };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to create admin user' };
   }
@@ -1416,12 +1618,14 @@ export async function updateAdminUser(
     is_active?: boolean;
   }
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('admin_users')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'admin_users',
+      action: 'update',
+      values: { ...updates, updated_at: new Date().toISOString() },
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error updating admin user:', error);
     return false;
   }
@@ -1430,13 +1634,14 @@ export async function updateAdminUser(
 }
 
 export async function deleteAdminUser(id: string): Promise<boolean> {
-  // Don't actually delete - deactivate instead
-  const { error } = await supabase
-    .from('admin_users')
-    .update({ is_active: false, updated_at: new Date().toISOString() })
-    .eq('id', id);
-
-  if (error) {
+  try {
+    await adminDbRequest({
+      table: 'admin_users',
+      action: 'update',
+      values: { is_active: false, updated_at: new Date().toISOString() },
+      filters: [{ column: 'id', value: id }],
+    });
+  } catch (error) {
     console.error('Error deactivating admin user:', error);
     return false;
   }
@@ -1487,40 +1692,14 @@ export async function updateAdminPassword(
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Update password via admin API
-    // Note: This requires service role key. In production, use API route
-    const { supabase: adminSupabase } = await import('@/lib/supabase');
-    
-    // Check if admin API is available
-    if (!adminSupabase.auth || !(adminSupabase.auth as any).admin) {
-      return { success: false, error: 'Password update requires service role key. Please use Supabase Auth dashboard or contact system administrator.' };
-    }
-
-    // Get user by email from auth
-    const { data: { users }, error: usersError } = await (adminSupabase.auth as any).admin.listUsers();
-    
-    if (usersError) {
-      return { success: false, error: usersError.message || 'Failed to list users' };
-    }
-
-    const authUser = users?.find((u: any) => u.email === adminEmail);
-
-    if (!authUser) {
-      return { success: false, error: 'Auth user not found. Please create user in Supabase Auth first.' };
-    }
-
-    const { error: updateError } = await (adminSupabase.auth as any).admin.updateUserById(
-      authUser.id,
-      { password: newPassword }
-    );
-
-    if (updateError) {
-      return { success: false, error: updateError.message };
-    }
-
+    await adminDbRequest({
+      table: 'admin_users',
+      action: 'authUpdatePasswordByEmail',
+      values: { email: adminEmail, password: newPassword },
+    });
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message || 'Failed to update password. Service role key may be required.' };
+    return { success: false, error: err.message || 'Failed to update password.' };
   }
 }
 

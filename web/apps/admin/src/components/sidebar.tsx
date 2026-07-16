@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, CalendarCheck, MapPin,
   CreditCard, Ticket, BarChart3, Settings, LogOut, Bell,
-  HelpCircle, Gift, X, Shield, FileText, Menu,
+  HelpCircle, Gift, X, Shield, FileText, Menu, Route,
 } from "lucide-react";
 import { cn } from "@tankua/ui";
 import { signOutAdmin } from "@/lib/auth";
@@ -20,6 +20,7 @@ const navSections = [
       { label: "Providers",    href: "/dashboard/providers",            icon: Building2 },
       { label: "Travelers",    href: "/dashboard/users",                icon: Users },
       { label: "Tours",        href: "/dashboard/destinations",         icon: MapPin },
+      { label: "Trips",        href: "/dashboard/trips",                icon: Route },
       { label: "Applications", href: "/dashboard/provider-applications",icon: FileText },
       { label: "Bookings",     href: "/dashboard/bookings",             icon: CalendarCheck },
     ],

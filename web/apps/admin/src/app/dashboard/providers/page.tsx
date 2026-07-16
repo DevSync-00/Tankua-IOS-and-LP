@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Avatar, Input } from "@tankua/ui";
-import { getProviders, updateProviderStatus, updateProvider, createProvider, type Provider } from "@/lib/queries";
+import { approveProvider, getProviders, updateProviderStatus, updateProvider, createProvider, type Provider } from "@/lib/queries";
 
 export default function ProvidersPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -76,9 +76,13 @@ export default function ProvidersPage() {
   };
 
   const handleStatusUpdate = async (id: string, newStatus: 'active' | 'inactive' | 'suspended') => {
-    const success = await updateProviderStatus(id, newStatus);
+    const success = newStatus === "active"
+      ? (await approveProvider(id)).success
+      : await updateProviderStatus(id, newStatus);
     if (success) {
       loadProviders();
+    } else {
+      alert("Failed to update provider status");
     }
   };
 

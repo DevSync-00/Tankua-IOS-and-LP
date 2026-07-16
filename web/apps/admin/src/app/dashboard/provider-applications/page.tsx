@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Avatar, Input } from "@tankua/ui";
-import { getProviderApplications, updateProviderStatus, getProviders, type SupportTicket, type Provider } from "@/lib/queries";
+import { adminDbRequest } from "@/lib/admin-api";
+import { approveProvider, getProviderApplications, updateProviderStatus, getProviders, type SupportTicket, type Provider } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 
 export default function ProviderApplicationsPage() {
@@ -33,10 +34,15 @@ export default function ProviderApplicationsPage() {
     loadInactiveProviders();
   }, []);
 
+  useEffect(() => {
+    if (viewMode === "providers" && !selectedApp && inactiveProviders.length > 0) {
+      selectProvider(inactiveProviders[0]);
+    }
+  }, [viewMode, inactiveProviders, selectedApp]);
+
   const loadApplications = async () => {
     try {
       const result = await getProviderApplications();
-      console.log("Applications loaded:", result); // Debug log
       setApplications(result.applications);
     } catch (error) {
       console.error("Error loading applications:", error);
@@ -52,7 +58,6 @@ export default function ProviderApplicationsPage() {
         limit: 100,
       });
       setInactiveProviders(result.providers);
-      console.log("Inactive providers loaded:", result);
     } catch (error) {
       console.error("Error loading inactive providers:", error);
     } finally {
@@ -63,17 +68,24 @@ export default function ProviderApplicationsPage() {
   const handleApprove = async (providerId: string) => {
     if (!confirm("Are you sure you want to approve this provider?")) return;
 
-    const success = await updateProviderStatus(providerId, "active");
-    if (success) {
+    const result = await approveProvider(providerId);
+    if (result.success) {
       // Update ticket status
-      await supabase
-        .from("support_tickets")
-        .update({ status: "resolved", resolution_notes: "Provider approved" })
-        .eq("provider_id", providerId)
-        .eq("status", "open");
+      await adminDbRequest({
+        table: "support_tickets",
+        action: "update",
+        values: { status: "resolved", resolution_notes: "Provider approved", updated_at: new Date().toISOString() },
+        filters: [
+          { column: "provider_id", value: providerId },
+          { column: "status", value: "open" },
+        ],
+      });
 
       loadApplications();
+      loadInactiveProviders();
       setSelectedApp(null);
+    } else {
+      alert(result.error || "Failed to approve provider");
     }
   };
 
@@ -84,17 +96,61 @@ export default function ProviderApplicationsPage() {
     // Update provider status to suspended
     await updateProviderStatus(providerId, "suspended");
 
-    // Update ticket status
-    await supabase
-      .from("support_tickets")
-      .update({
-        status: "resolved",
-        resolution_notes: `Rejected: ${reason}`,
-      })
-      .eq("id", ticketId);
+    const ticketUpdate = {
+      status: "resolved",
+      resolution_notes: `Rejected: ${reason}`,
+    };
+
+    await adminDbRequest({
+      table: "support_tickets",
+      action: "update",
+      values: { ...ticketUpdate, updated_at: new Date().toISOString() },
+      filters: [{ column: "id", value: ticketId }],
+    });
+
+    await adminDbRequest({
+      table: "support_tickets",
+      action: "update",
+      values: { ...ticketUpdate, updated_at: new Date().toISOString() },
+      filters: [
+        { column: "provider_id", value: providerId },
+        { column: "status", value: "open" },
+      ],
+    });
 
     loadApplications();
+    loadInactiveProviders();
     setSelectedApp(null);
+  };
+
+  const selectProvider = (provider: Provider) => {
+    const relatedTicket = applications.find((ticket) => ticket.provider_id === provider.id);
+    if (relatedTicket) {
+      setSelectedApp(relatedTicket);
+      return;
+    }
+
+    setSelectedApp({
+      id: `provider-${provider.id}`,
+      ticket_number: "Direct provider record",
+      subject: `Provider: ${provider.name}`,
+      description: [
+        `Company: ${provider.name}`,
+        `Email: ${provider.email || "N/A"}`,
+        `Phone: ${provider.phone || "N/A"}`,
+        `Description: ${provider.description || "N/A"}`,
+      ].join("\n"),
+      category: "general",
+      priority: "high",
+      status: "open",
+      provider_id: provider.id,
+      provider,
+      user_id: null,
+      booking_id: null,
+      assigned_to: null,
+      created_at: provider.created_at,
+      updated_at: provider.created_at,
+    });
   };
 
   const parseApplicationData = (description: string) => {
@@ -272,31 +328,7 @@ export default function ProviderApplicationsPage() {
                           ? "border-primary bg-primary/5"
                           : "border-transparent bg-muted/30 hover:border-border"
                       }`}
-                      onClick={() => {
-                        // Find related ticket if exists
-                        const relatedTicket = applications.find(t => t.provider_id === provider.id);
-                        if (relatedTicket) {
-                          setSelectedApp(relatedTicket);
-                        } else {
-                          // Create a mock ticket for display
-                          setSelectedApp({
-                            id: provider.id,
-                            ticket_number: "N/A",
-                            subject: `Provider: ${provider.name}`,
-                            description: `Name: ${provider.name}\nEmail: ${provider.email || "N/A"}\nPhone: ${provider.phone || "N/A"}\nDescription: ${provider.description || "N/A"}`,
-                            category: "general",
-                            priority: "high",
-                            status: "open",
-                            provider_id: provider.id,
-                            provider: provider,
-                            user_id: null,
-                            booking_id: null,
-                            assigned_to: null,
-                            created_at: provider.created_at,
-                            updated_at: provider.created_at,
-                          });
-                        }
-                      }}
+                      onClick={() => selectProvider(provider)}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-3">
@@ -327,6 +359,32 @@ export default function ProviderApplicationsPage() {
                           <Clock className="h-3 w-3" />
                           {new Date(provider.created_at).toLocaleDateString()}
                         </p>
+                        <div className="flex flex-wrap gap-2 pt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleApprove(provider.id);
+                            }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleReject(provider.id, `provider-${provider.id}`);
+                            }}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
