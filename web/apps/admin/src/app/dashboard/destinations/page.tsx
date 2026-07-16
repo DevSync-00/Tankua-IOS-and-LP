@@ -26,24 +26,26 @@ import { createDestination, updateDestination } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 
 const CATEGORIES = [
-  { value: "all", label: "All Categories", icon: "All" },
-  { value: "historical", label: "Historical", icon: "Hist" },
-  { value: "nature", label: "Nature", icon: "Nat" },
-  { value: "adventure", label: "Adventure", icon: "Adv" },
-  { value: "cultural", label: "Cultural", icon: "Cult" },
-  { value: "religious", label: "Religious", icon: "Rel" },
-  { value: "sacred", label: "Sacred", icon: "Sac" },
-  { value: "monument", label: "Monuments", icon: "Mon" },
-  { value: "park", label: "Parks", icon: "Park" },
-  { value: "museum", label: "Museums", icon: "Mus" },
-  { value: "city", label: "Cities", icon: "City" },
-  { value: "other", label: "Other", icon: "Other" },
+  { value: "all", label: "All Categories", icon: MapPin },
+  { value: "historical", label: "Historical", icon: MapPin },
+  { value: "nature", label: "Nature", icon: MapPin },
+  { value: "adventure", label: "Adventure", icon: MapPin },
+  { value: "cultural", label: "Cultural", icon: MapPin },
+  { value: "religious", label: "Religious", icon: MapPin },
+  { value: "sacred", label: "Sacred", icon: MapPin },
+  { value: "monument", label: "Monuments", icon: MapPin },
+  { value: "park", label: "Parks", icon: MapPin },
+  { value: "museum", label: "Museums", icon: MapPin },
+  { value: "city", label: "Cities", icon: MapPin },
+  { value: "other", label: "Other", icon: MapPin },
 ];
 
-const getCategoryIcon = (category: string) => {
+const getCategory = (category: string) => {
   const cat = CATEGORIES.find(c => c.value === category);
-  return cat?.icon || "Other";
+  return cat || CATEGORIES[CATEGORIES.length - 1];
 };
+
+const getCategoryLabel = (category: string) => getCategory(category).label;
 
 export default function DestinationsPage() {
   const [destinations, setDestinations] = useState<DestinationType[]>([]);
@@ -391,21 +393,24 @@ export default function DestinationsPage() {
 
           {/* Category Filter */}
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((category) => (
-              <Button
-                key={category.value}
-                variant={selectedCategory === category.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setSelectedCategory(category.value);
-                  setPage(1);
-                }}
-                className="gap-2"
-              >
-                <span>{category.icon}</span>
-                {category.label}
-              </Button>
-            ))}
+            {CATEGORIES.map((category) => {
+              const Icon = category.icon;
+              return (
+                <Button
+                  key={category.value}
+                  variant={selectedCategory === category.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedCategory(category.value);
+                    setPage(1);
+                  }}
+                  className="gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {category.label}
+                </Button>
+              );
+            })}
           </div>
 
           {/* Region Filter */}
@@ -479,14 +484,14 @@ export default function DestinationsPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-4xl">{getCategoryIcon(destination.category || "other")}</span>
+                      <MapPin className="h-12 w-12 text-muted-foreground" />
                     </div>
                   )}
                   {/* Category Badge */}
                   <div className="absolute top-2 left-2">
                     <Badge variant="secondary" className="gap-1">
-                      <span>{getCategoryIcon(destination.category || "other")}</span>
-                      <span className="capitalize">{destination.category || "other"}</span>
+                      <MapPin className="h-3 w-3" />
+                      <span>{getCategoryLabel(destination.category || "other")}</span>
                     </Badge>
                   </div>
                   {/* Overlay actions */}
@@ -628,7 +633,7 @@ export default function DestinationsPage() {
                     >
                       {CATEGORIES.filter(c => c.value !== "all").map(cat => (
                         <option key={cat.value} value={cat.value}>
-                          {cat.icon} {cat.label}
+                          {cat.label}
                         </option>
                       ))}
                     </select>

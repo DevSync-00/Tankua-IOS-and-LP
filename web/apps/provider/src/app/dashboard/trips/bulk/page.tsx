@@ -44,12 +44,28 @@ interface BulkTrip {
   errors?: string[];
 }
 
+const DESTINATION_CATEGORIES = [
+  { value: "all", label: "All Categories" },
+  { value: "historical", label: "Historical" },
+  { value: "nature", label: "Nature" },
+  { value: "adventure", label: "Adventure" },
+  { value: "cultural", label: "Cultural" },
+  { value: "religious", label: "Religious" },
+  { value: "sacred", label: "Sacred" },
+  { value: "monument", label: "Monuments" },
+  { value: "park", label: "Parks" },
+  { value: "museum", label: "Museums" },
+  { value: "city", label: "Cities" },
+  { value: "other", label: "Other" },
+];
+
 export default function BulkTripPage() {
   const router = useRouter();
   const [providerId, setProviderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [destinations, setDestinations] = useState<Array<{ id: string; name: string }>>([]);
+  const [destinations, setDestinations] = useState<Array<{ id: string; name: string; city?: string; region?: string; category?: string }>>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [existingTrips, setExistingTrips] = useState<TripDetails[]>([]);
   const [bulkTrips, setBulkTrips] = useState<BulkTrip[]>([]);
   const [template, setTemplate] = useState<TripTemplate>({
@@ -108,7 +124,7 @@ export default function BulkTripPage() {
     try {
       const { data, error } = await supabase
         .from('destinations')
-        .select('id, name')
+        .select('id, name, city, region, category')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -117,6 +133,10 @@ export default function BulkTripPage() {
       console.error('Error loading destinations:', error);
     }
   };
+
+  const filteredDestinations = selectedCategory === "all"
+    ? destinations
+    : destinations.filter((destination) => destination.category === selectedCategory);
 
   const loadExistingTrips = async () => {
     if (!providerId) return;
@@ -444,6 +464,24 @@ export default function BulkTripPage() {
               <CardTitle>Create from Template</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Filter Destinations by Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    setTemplate({ ...template, destinationId: "", destinationName: "" });
+                  }}
+                  className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm"
+                >
+                  {DESTINATION_CATEGORIES.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Destination *</label>
@@ -456,8 +494,10 @@ export default function BulkTripPage() {
                     className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm"
                   >
                     <option value="">Select destination</option>
-                    {destinations.map(dest => (
-                      <option key={dest.id} value={dest.id}>{dest.name}</option>
+                    {filteredDestinations.map(dest => (
+                      <option key={dest.id} value={dest.id}>
+                        {dest.name} {dest.city ? `(${dest.city})` : dest.region ? `(${dest.region})` : ""}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -643,6 +683,21 @@ export default function BulkTripPage() {
               </Button>
             </CardHeader>
             <CardContent>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Filter Destinations by Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm"
+                >
+                  {DESTINATION_CATEGORIES.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {bulkTrips.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>No trips added yet. Click "Add Trip" to get started.</p>
@@ -680,8 +735,10 @@ export default function BulkTripPage() {
                               className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border text-sm"
                             >
                               <option value="">Select destination</option>
-                              {destinations.map(dest => (
-                                <option key={dest.id} value={dest.id}>{dest.name}</option>
+                              {filteredDestinations.map(dest => (
+                                <option key={dest.id} value={dest.id}>
+                                  {dest.name} {dest.city ? `(${dest.city})` : dest.region ? `(${dest.region})` : ""}
+                                </option>
                               ))}
                             </select>
                           </div>

@@ -15,6 +15,24 @@ import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@tankua/ui";
 import { supabase } from "@/lib/supabase";
 
+const DESTINATION_CATEGORIES = [
+  { value: "all", label: "All Categories" },
+  { value: "historical", label: "Historical" },
+  { value: "nature", label: "Nature" },
+  { value: "adventure", label: "Adventure" },
+  { value: "cultural", label: "Cultural" },
+  { value: "religious", label: "Religious" },
+  { value: "sacred", label: "Sacred" },
+  { value: "monument", label: "Monuments" },
+  { value: "park", label: "Parks" },
+  { value: "museum", label: "Museums" },
+  { value: "city", label: "Cities" },
+  { value: "other", label: "Other" },
+];
+
+const getDestinationCategoryLabel = (category?: string) =>
+  DESTINATION_CATEGORIES.find((item) => item.value === category)?.label || "Other";
+
 export default function NewTripPage() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
@@ -251,16 +269,11 @@ export default function NewTripPage() {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-background"
                 >
-                  <option value="all">All Categories</option>
-                  <option value="church">Churches</option>
-                  <option value="historical">Historical</option>
-                  <option value="nature">Nature</option>
-                  <option value="adventure">Adventure</option>
-                  <option value="cultural">Cultural</option>
-                  <option value="monument">Monuments</option>
-                  <option value="park">Parks</option>
-                  <option value="museum">Museums</option>
-                  <option value="other">Other</option>
+                  {DESTINATION_CATEGORIES.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -280,7 +293,7 @@ export default function NewTripPage() {
                     <option value="">Select a destination</option>
                     {destinations.map((dest) => (
                       <option key={dest.id} value={dest.id}>
-                        {dest.name} {dest.city ? `(${dest.city})` : dest.region ? `(${dest.region})` : ''} {dest.category ? `- ${dest.category}` : ''}
+                        {dest.name} {dest.city ? `(${dest.city})` : dest.region ? `(${dest.region})` : ''} {dest.category ? `- ${getDestinationCategoryLabel(dest.category)}` : ''}
                       </option>
                     ))}
                   </select>
