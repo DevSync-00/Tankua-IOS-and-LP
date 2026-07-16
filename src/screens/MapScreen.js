@@ -69,14 +69,17 @@ const MapScreen = ({ navigation }) => {
   // Categories
   const categories = [
     { id: null, label: 'All', icon: 'apps-outline' },
-    { id: 'church', label: 'Churches', icon: 'location-outline' },
     { id: 'historical', label: 'Historical', icon: 'library-outline' },
     { id: 'nature', label: 'Nature', icon: 'leaf-outline' },
     { id: 'adventure', label: 'Adventure', icon: 'bicycle-outline' },
     { id: 'cultural', label: 'Cultural', icon: 'people-outline' },
     { id: 'monument', label: 'Monuments', icon: 'location-outline' },
-    { id: 'park', label: 'Parks', icon: 'tree-outline' },
-    { id: 'museum', label: 'Museums', icon: 'library-outline' },
+    { id: 'park', label: 'Parks', icon: 'trail-sign-outline' },
+    { id: 'museum', label: 'Museums', icon: 'business-outline' },
+    { id: 'city', label: 'Cities', icon: 'business-outline' },
+    { id: 'religious', label: 'Religious', icon: 'star-outline' },
+    { id: 'sacred', label: 'Sacred', icon: 'sparkles-outline' },
+    { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
   ];
 
   // Memoize filtered destinations to avoid circular dependencies
@@ -300,6 +303,7 @@ const MapScreen = ({ navigation }) => {
     const colors = {
       church: COLORS.primary,
       religious: COLORS.primary,
+      sacred: '#DC2626',
       historical: '#8B4513',
       nature: COLORS.success,
       adventure: COLORS.accent,
@@ -307,23 +311,28 @@ const MapScreen = ({ navigation }) => {
       monument: '#34495E',
       park: COLORS.success,
       museum: '#3498DB',
+      city: '#3B82F6',
+      other: COLORS.gray,
     };
     return colors[category] || COLORS.primary;
   };
 
   const getMarkerIcon = (category) => {
     const icons = {
-      church: '⛪',
-      religious: '⛪',
-      historical: '🏛️',
-      nature: '🌲',
-      adventure: '🚴',
-      cultural: '🎭',
-      monument: '🗿',
-      park: '🌳',
-      museum: '🏛️',
+      church: '*',
+      religious: '*',
+      sacred: '*',
+      historical: 'H',
+      nature: 'N',
+      adventure: 'A',
+      cultural: 'C',
+      monument: 'M',
+      park: 'P',
+      museum: 'M',
+      city: 'C',
+      other: 'O',
     };
-    return icons[category] || '📍';
+    return icons[category] || 'O';
   };
 
   const cardAnimatedStyle = useAnimatedStyle(() => ({
@@ -397,9 +406,7 @@ const MapScreen = ({ navigation }) => {
         )}
 
         {/* Destination Markers */}
-        {filteredDestinations
-          .filter(destination => destination.category !== 'church' && destination.category !== 'religious')
-          .map((destination) => {
+        {filteredDestinations.map((destination) => {
             const isSelected = selectedDestination?.id === destination.id;
             const markerColor = getMarkerColor(destination.category);
             
@@ -533,7 +540,7 @@ const MapScreen = ({ navigation }) => {
             }
           >
             {(() => {
-              const displayDestinations = filteredDestinations.filter(d => d.category !== 'church' && d.category !== 'religious');
+              const displayDestinations = filteredDestinations;
               return (
                 <>
                   <Text style={styles.listHeader}>

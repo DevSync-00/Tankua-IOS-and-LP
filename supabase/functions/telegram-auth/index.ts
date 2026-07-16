@@ -237,7 +237,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         telegram_id:       String(id),
         telegram_username: username ?? null,
         photo_url:         photoUrl ?? null,
-        phone_number:      "",
+        phone_number:      `tg_${id}`,
         emergency_contact: "",
         location:          "",
         saved_destinations: [],

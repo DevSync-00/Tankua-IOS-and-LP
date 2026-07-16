@@ -17,13 +17,18 @@ import {
 import { Button, Card, Badge } from "@tankua/ui";
 
 const tourCategories = [
-  { id: "all", name: "All Categories", icon: "🌍" },
-  { id: "adventure", name: "Adventure Tours", icon: "🏔️" },
-  { id: "cultural", name: "Cultural Tours", icon: "🏛️" },
-  { id: "nature", name: "Nature & Wildlife", icon: "🦁" },
-  { id: "historical", name: "Historical Sites", icon: "⛪" },
-  { id: "city", name: "City Tours", icon: "🏙️" },
-  { id: "beach", name: "Beach & Lake", icon: "🏖️" },
+  { id: "all", name: "All Categories", icon: "All" },
+  { id: "historical", name: "Historical Sites", icon: "Hist" },
+  { id: "adventure", name: "Adventure Tours", icon: "Adv" },
+  { id: "cultural", name: "Cultural Tours", icon: "Cult" },
+  { id: "nature", name: "Nature & Wildlife", icon: "Nat" },
+  { id: "park", name: "Parks", icon: "Park" },
+  { id: "museum", name: "Museums", icon: "Mus" },
+  { id: "monument", name: "Monuments", icon: "Mon" },
+  { id: "city", name: "City Tours", icon: "City" },
+  { id: "religious", name: "Religious Heritage", icon: "Rel" },
+  { id: "sacred", name: "Sacred Sites", icon: "Sac" },
+  { id: "other", name: "Other", icon: "Other" },
 ];
 
 const destinations = [

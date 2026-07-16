@@ -11,11 +11,17 @@ import ModernButton from './ModernButton';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: 'apps-outline' },
-  { id: 'church', label: 'Churches', icon: 'location-outline' },
   { id: 'historical', label: 'Historical', icon: 'library-outline' },
   { id: 'nature', label: 'Nature', icon: 'leaf-outline' },
   { id: 'adventure', label: 'Adventure', icon: 'bicycle-outline' },
   { id: 'cultural', label: 'Cultural', icon: 'people-outline' },
+  { id: 'park', label: 'Parks', icon: 'trail-sign-outline' },
+  { id: 'museum', label: 'Museums', icon: 'business-outline' },
+  { id: 'monument', label: 'Monuments', icon: 'location-outline' },
+  { id: 'city', label: 'Cities', icon: 'business-outline' },
+  { id: 'religious', label: 'Religious', icon: 'star-outline' },
+  { id: 'sacred', label: 'Sacred', icon: 'sparkles-outline' },
+  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
 ];
 
 const DISTANCE_RANGES = [

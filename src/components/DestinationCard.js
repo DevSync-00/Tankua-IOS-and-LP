@@ -14,6 +14,7 @@ const DestinationCard = ({ destination, onPress, variant = 'list' }) => {
     switch (category) {
       case 'church':
       case 'religious':
+      case 'sacred':
         return 'star-outline';
       case 'historical':
         return 'library-outline';
@@ -28,7 +29,9 @@ const DestinationCard = ({ destination, onPress, variant = 'list' }) => {
       case 'park':
         return 'tree-outline';
       case 'museum':
-        return 'library-outline';
+        return 'business-outline';
+      case 'city':
+        return 'business-outline';
       default:
         return 'location-outline';
     }

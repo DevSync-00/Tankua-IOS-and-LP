@@ -102,10 +102,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const applyUserState = async (data) => {
+    const storedPhoneNumber = data.phone_number || '';
+    const visiblePhoneNumber =
+      storedPhoneNumber.startsWith('auth_') || storedPhoneNumber.startsWith('tg_')
+        ? ''
+        : storedPhoneNumber;
+
     const userData = {
       ...data,
       name: data.name || '',
-      phone_number: data.phone_number || '',
+      phone_number: visiblePhoneNumber,
       emergency_contact: data.emergency_contact || '',
       location: data.location || '',
       saved_destinations: data.saved_destinations || data.saved_churches || [],
@@ -119,9 +125,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const createUserProfile = async (userId, phoneNumber = '') => {
+    const authPhonePlaceholder = phoneNumber || `auth_${userId}`;
     const newUser = {
       id: userId,
-      phone_number: phoneNumber,
+      phone_number: authPhonePlaceholder,
       name: '',
       email: '',
       emergency_contact: '',
@@ -141,6 +148,56 @@ export const AuthProvider = ({ children }) => {
     return applyUserState(data);
   };
 
+  const ensureEmailUserProfile = async (authUser, name = '') => {
+    const { data: existingUser, error: existingUserError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle();
+
+    if (existingUserError) throw existingUserError;
+
+    if (existingUser) {
+      const updates = {};
+      if (authUser.email && !existingUser.email) updates.email = authUser.email;
+      if (name && !existingUser.name) updates.name = name;
+
+      if (Object.keys(updates).length > 0) {
+        const { data, error } = await supabase
+          .from('users')
+          .update(updates)
+          .eq('id', authUser.id)
+          .select('*')
+          .single();
+        if (error) throw error;
+        return applyUserState(data);
+      }
+
+      return applyUserState(existingUser);
+    }
+
+    const profile = {
+      id: authUser.id,
+      phone_number: `auth_${authUser.id}`,
+      name: name || authUser.user_metadata?.name || '',
+      email: authUser.email || '',
+      emergency_contact: '',
+      location: '',
+      saved_destinations: [],
+      saved_stations: [],
+      is_admin: false,
+    };
+
+    const { data, error } = await supabase
+      .from('users')
+      .upsert([profile], { onConflict: 'id' })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return applyUserState(data);
+  };
+
   const loadUserProfile = async (userId) => {
     try {
       const { data, error } = await supabase
@@ -153,7 +210,11 @@ export const AuthProvider = ({ children }) => {
 
       if (!data) {
         const { data: authData } = await supabase.auth.getUser();
-        await createUserProfile(userId, authData?.user?.phone || '');
+        if (authData?.user?.email) {
+          await ensureEmailUserProfile(authData.user);
+        } else {
+          await createUserProfile(userId, authData?.user?.phone || '');
+        }
         return;
       }
 
@@ -249,6 +310,56 @@ export const AuthProvider = ({ children }) => {
       return data.user;
     } catch (error) {
       throw new Error(getOtpErrorMessage(error));
+    }
+  };
+
+  const signInWithEmail = async (email, password) => {
+    try {
+      const normalizedEmail = (email || '').trim().toLowerCase();
+      if (!normalizedEmail || !password) {
+        throw new Error('Please enter your email and password.');
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (error) throw error;
+      if (data.user) await ensureEmailUserProfile(data.user);
+
+      return data.user;
+    } catch (error) {
+      throw new Error(error.message || 'Email sign in failed. Please try again.');
+    }
+  };
+
+  const signUpWithEmail = async ({ name, email, password }) => {
+    try {
+      const normalizedEmail = (email || '').trim().toLowerCase();
+      const displayName = (name || '').trim();
+
+      if (!displayName) throw new Error('Please enter your name.');
+      if (!normalizedEmail || !password) throw new Error('Please enter your email and password.');
+      if (password.length < 8) throw new Error('Password must be at least 8 characters long.');
+
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          data: { name: displayName },
+        },
+      });
+
+      if (error) throw error;
+      if (data.user && data.session) await ensureEmailUserProfile(data.user, displayName);
+
+      return {
+        user: data.user,
+        needsEmailConfirmation: !data.session,
+      };
+    } catch (error) {
+      throw new Error(error.message || 'Email sign up failed. Please try again.');
     }
   };
 
@@ -383,6 +494,8 @@ export const AuthProvider = ({ children }) => {
         isAdmin,
         sendOTP,
         verifyOTP,
+        signInWithEmail,
+        signUpWithEmail,
         loginWithTelegram,
         logout,
         updateProfile,

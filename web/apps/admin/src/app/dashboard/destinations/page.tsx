@@ -26,21 +26,23 @@ import { createDestination, updateDestination } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 
 const CATEGORIES = [
-  { value: "all", label: "All Categories", icon: "🌍" },
-  { value: "church", label: "Churches", icon: "⛪" },
-  { value: "historical", label: "Historical", icon: "🏛️" },
-  { value: "nature", label: "Nature", icon: "🌲" },
-  { value: "adventure", label: "Adventure", icon: "🚴" },
-  { value: "cultural", label: "Cultural", icon: "🎭" },
-  { value: "monument", label: "Monuments", icon: "🗿" },
-  { value: "park", label: "Parks", icon: "🌳" },
-  { value: "museum", label: "Museums", icon: "🏛️" },
-  { value: "other", label: "Other", icon: "📍" },
+  { value: "all", label: "All Categories", icon: "All" },
+  { value: "historical", label: "Historical", icon: "Hist" },
+  { value: "nature", label: "Nature", icon: "Nat" },
+  { value: "adventure", label: "Adventure", icon: "Adv" },
+  { value: "cultural", label: "Cultural", icon: "Cult" },
+  { value: "religious", label: "Religious", icon: "Rel" },
+  { value: "sacred", label: "Sacred", icon: "Sac" },
+  { value: "monument", label: "Monuments", icon: "Mon" },
+  { value: "park", label: "Parks", icon: "Park" },
+  { value: "museum", label: "Museums", icon: "Mus" },
+  { value: "city", label: "Cities", icon: "City" },
+  { value: "other", label: "Other", icon: "Other" },
 ];
 
 const getCategoryIcon = (category: string) => {
   const cat = CATEGORIES.find(c => c.value === category);
-  return cat?.icon || "📍";
+  return cat?.icon || "Other";
 };
 
 export default function DestinationsPage() {

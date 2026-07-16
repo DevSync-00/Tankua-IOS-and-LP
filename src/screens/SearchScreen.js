@@ -13,12 +13,17 @@ import { deduplicateDestinations } from '../utils/destinationUtils';
 import { SkeletonCard } from '../components/SkeletonLoader';
 
 const CATEGORIES = [
-  { id: 'sacred',     label: 'Churches',   icon: 'star' },
   { id: 'historical', label: 'Historical', icon: 'library' },
   { id: 'adventure',  label: 'Adventures', icon: 'bicycle' },
   { id: 'nature',     label: 'Nature',     icon: 'leaf' },
-  { id: 'city',       label: 'City',       icon: 'business' },
   { id: 'cultural',   label: 'Cultural',   icon: 'people' },
+  { id: 'park',       label: 'Parks',      icon: 'trail-sign' },
+  { id: 'museum',     label: 'Museums',    icon: 'business' },
+  { id: 'monument',   label: 'Monuments',  icon: 'location' },
+  { id: 'city',       label: 'City',       icon: 'business' },
+  { id: 'religious',  label: 'Religious',  icon: 'star' },
+  { id: 'sacred',     label: 'Sacred',     icon: 'sparkles' },
+  { id: 'other',      label: 'Other',      icon: 'ellipsis-horizontal' },
 ];
 
 const SORT_OPTIONS = [

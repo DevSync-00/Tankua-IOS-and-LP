@@ -10,12 +10,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
 
 const CATEGORIES = [
-  { id: 'sacred', label: 'Sacred Sites', icon: 'star-outline', color: '#FF6B6B' },
-  { id: 'nature', label: 'Nature', icon: 'leaf-outline', color: '#10B981' },
-  { id: 'city', label: 'City Life', icon: 'business-outline', color: '#3B82F6' },
   { id: 'historical', label: 'Historical', icon: 'library-outline', color: '#8B5CF6' },
+  { id: 'nature', label: 'Nature', icon: 'leaf-outline', color: '#10B981' },
   { id: 'adventure', label: 'Adventure', icon: 'bicycle-outline', color: '#F59E0B' },
   { id: 'cultural', label: 'Cultural', icon: 'people-outline', color: '#EC4899' },
+  { id: 'park', label: 'Parks', icon: 'trail-sign-outline', color: '#059669' },
+  { id: 'museum', label: 'Museums', icon: 'business-outline', color: '#2563EB' },
+  { id: 'monument', label: 'Monuments', icon: 'location-outline', color: '#64748B' },
+  { id: 'city', label: 'City Life', icon: 'business-outline', color: '#3B82F6' },
+  { id: 'religious', label: 'Religious', icon: 'star-outline', color: '#DC2626' },
+  { id: 'sacred', label: 'Sacred Sites', icon: 'sparkles-outline', color: '#FF6B6B' },
+  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline', color: '#6B7280' },
 ];
 
 const CategoryRibbon = ({ onCategoryPress, selectedCategory }) => {
